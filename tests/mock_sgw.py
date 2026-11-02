@@ -25,8 +25,14 @@ ITEMS = {
     "kodak zi8": [
         {"itemId": 301, "title": "Lot of 3 Kodak Zi8 cameras", "currentPrice": 4.0, "numBids": 0, "listingType": 0, "endTime": end(50)},
     ],
+    "ipod classic": [
+        {"itemId": 401, "title": "Apple iPod Classic 160GB Black 7th Gen", "currentPrice": 20.0, "numBids": 2, "listingType": 0, "endTime": end(3)},
+        {"itemId": 402, "title": "Apple iPod Nano Classic look case", "currentPrice": 3.0, "numBids": 0, "listingType": 0, "endTime": end(3)},
+        {"itemId": 403, "title": "Apple iPod 5th gen video", "currentPrice": 8.0, "numBids": 0, "listingType": 0, "endTime": end(80)},
+        {"itemId": 404, "title": "iPod Classic 80GB Silver", "currentPrice": 25.0, "numBids": 0, "listingType": 1, "buyNowPrice": 25.0, "endTime": end(100)},
+    ],
 }
-SHIP = {101: (8.50, 3.49), 202: (9.0, 3.49)}  # 102, 301: no quote
+SHIP = {101: (8.50, 3.49), 202: (9.0, 3.49), 401: (7.0, 3.0), 404: (6.0, 3.0)}  # 102, 301: no quote
 
 
 class H(BaseHTTPRequestHandler):

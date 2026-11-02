@@ -22,21 +22,33 @@ keeps your models and settings (the database is gitignored).
 
 ## Using it
 
-- **Models**: add, edit, pause, delete. One search term per line. Max
-  landed buy = bid + shipping + handling. By default a listing counts only
-  if its title has the last word of a search term (`Canon SX110` → `SX110`),
-  digit-bounded so W7 doesn't catch W70. Set "Title must contain" to
-  override, e.g. `F31fd, F31 fd`.
-- **Results**: live listings under max buy, ending soonest first. "Bid up
-  to" is max buy minus that listing's real shipping and handling. An amber
-  `~$12` means no quote yet (the estimate from Settings). A listing whose
+- **Categories**: group watches (Cameras, iPods, Game systems…). Add, rename,
+  delete (only when empty). You can also make one from the watch form.
+- **Watches**: one per thing you buy. Each has:
+  - **Search keywords**, one per line; each is one ShopGoodwill search. Add one
+    from the list with the "Add keyword" box (comma separate several), remove
+    one with its ×.
+  - **How a title has to match**:
+    *Model number* (default; title has the last word of a keyword, `Canon SX110`
+    → `SX110`, digit-bounded so W7 doesn't catch W70), *All words* (title has
+    every word of one keyword; for things like `iPod Classic`), or *Anything
+    the search returns*. "Title must contain" overrides all three.
+  - **Exclude words**: listings with any of these are dropped for this watch
+    (`nano, shuffle`). Settings has skip words and red flags for every watch.
+  - **Max landed buy** (bid + shipping + handling), **tier**, **notes**.
+- **Results**: filter by category, watch, tier, ending window, title text and
+  max landed; sort by ending soonest, most room, cheapest or newest found;
+  show or hide over-max, flagged and buy-now. Filters live in the URL, so
+  bookmark the views you use. "Bid up to" is max buy minus that listing's real
+  shipping and handling. An amber `~$12` means no quote yet. A listing whose
   shipping the calculator refused is flagged `no shipping quote`, never clean.
-- **Settings**: ZIP for shipping quotes, red-flag and skip words, and an
-  optional ntfy topic for a push when a new clean listing appears.
-- **models.json** (link on the Models page) exports the list.
+- **Settings**: ZIP for shipping quotes, global red-flag and skip words, and
+  an optional ntfy topic for a push when a new clean listing appears.
+- **export.json** (link on the Watches page) exports everything.
 
 Seeded from the Camera Sourcing Cheat Sheet (Nov 1, 2026). After that, this
-app is the list: change max buys here, not in the doc.
+app is the list: change max buys here, not in the doc. Upgrading from the
+first version keeps your watches and puts them in a Cameras category.
 
 ## Where things are
 
