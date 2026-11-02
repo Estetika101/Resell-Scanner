@@ -1,0 +1,53 @@
+"""Local stand-in for buyerapi.shopgoodwill.com, in the shapes the old adapter
+verified on 2026-08-14 (naive Pacific endTime, listingType, HTML shipping)."""
+import json
+from datetime import datetime, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from zoneinfo import ZoneInfo
+
+PT = ZoneInfo("America/Los_Angeles")
+
+
+def end(hours):
+    return (datetime.now(PT) + timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+ITEMS = {
+    "canon sx110": [
+        {"itemId": 101, "title": "Canon PowerShot SX110 IS 9MP Digital Camera Tested", "currentPrice": 14.0, "numBids": 3, "listingType": 0, "endTime": end(5), "imageURL": "26\\Items\\a.jpg"},
+        {"itemId": 102, "title": "Canon SX110 IS For Parts Not Working", "currentPrice": 5.0, "numBids": 0, "listingType": 0, "endTime": end(30)},
+        {"itemId": 103, "title": "Canon SX110 case only", "currentPrice": 2.0, "numBids": 0, "listingType": 0, "endTime": end(2)},
+    ],
+    "sony dsc-w7": [
+        {"itemId": 201, "title": "Sony Cyber-shot DSC-W70 7.2MP", "currentPrice": 9.0, "numBids": 1, "listingType": 0, "endTime": end(8)},
+        {"itemId": 202, "title": "Sony DSC-W7 Cybershot w/ battery", "currentPrice": 30.0, "numBids": 6, "listingType": 0, "endTime": end(1)},
+    ],
+    "kodak zi8": [
+        {"itemId": 301, "title": "Lot of 3 Kodak Zi8 cameras", "currentPrice": 4.0, "numBids": 0, "listingType": 0, "endTime": end(50)},
+    ],
+}
+SHIP = {101: (8.50, 3.49), 202: (9.0, 3.49)}  # 102, 301: no quote
+
+
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if self.path.endswith("/Search/ItemListing"):
+            items = ITEMS.get(body["searchText"].lower(), []) if body["page"] == "1" else []
+            out = {"searchResults": {"items": items, "itemCount": len(items)}, "categoryListModel": []}
+        elif self.path.endswith("/CalculateShipping"):
+            q = SHIP.get(body["itemId"])
+            out = (f"<p>Shipping: <span id='shipping-span'>${q[0]:.2f} (GROUND_HOME_DELIVERY)</span></p>"
+                   f"<p>Handling: ${q[1]:.2f}</p>") if q else "<p>Pickup only</p>"
+        else:
+            self.send_response(404); self.end_headers(); return
+        b = json.dumps(out).encode()
+        self.send_response(200); self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8099), H).serve_forever()

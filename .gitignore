@@ -1,0 +1,4 @@
+*.db
+*.db-*
+*.db.scan.lock
+__pycache__/
