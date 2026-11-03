@@ -155,6 +155,55 @@ def seller_info(item_id: str):
     }
 
 
+def item_detail(item_id: str):
+    """One listing by id (for listings tracked from the browser), or None."""
+    try:
+        d = _get(f"/ItemDetail/GetItemDetailModelByItemId/{int(item_id)}")
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return None
+    if not isinstance(d, dict) or not (d.get("itemId") or d.get("title")):
+        return None
+    buy_now = money(d.get("buyNowPrice"))
+    is_auction = bool(d.get("isAuction", True))
+    return {
+        "item_id": str(d.get("itemId") or item_id),
+        "title": d.get("title") or "",
+        "price": money(d.get("currentPrice") or d.get("minimumBid") or 0) if is_auction or not buy_now else buy_now,
+        "bids": d.get("numberOfBids") or 0,
+        "is_auction": is_auction,
+        "end_utc": parse_end(d.get("endTime")),
+        "image": image_url(d.get("imageUrlString") or d.get("imageURL")),
+        "seller_id": str(d.get("sellerId") or ""),
+        "seller": d.get("sellerCompanyName") or "",
+    }
+
+
+def seller_listings(seller_id: str, pages: int = 10) -> list[dict]:
+    """A seller's live listings, ending soonest first. Uses the search
+    endpoint's selectedSellerIds with no search text. The key is in the payload
+    the site's own frontend sends; filtering on it alone is not yet verified
+    against the live API, so a shape change raises ShapeError like search()."""
+    out = []
+    for page in range(1, pages + 1):
+        body = dict(SEARCH_TEMPLATE, searchText="", selectedSellerIds=str(seller_id), page=str(page))
+        data = _post("/Search/ItemListing", body)
+        if not isinstance(data, dict) or "searchResults" not in data:
+            keys = list(data)[:10] if isinstance(data, dict) else type(data).__name__
+            raise ShapeError(f"ItemListing response shape changed; top keys: {keys}")
+        sr = data.get("searchResults") or {}
+        items = sr.get("items") or []
+        out.extend(parse(i) for i in items)
+        total = sr.get("itemCount")
+        if not items or (total is not None and len(out) >= total):
+            break
+    # If the server ignored the seller filter, say so rather than suggest
+    # another seller's items as combinable.
+    other = [i for i in out if i["seller_id"] and i["seller_id"] != str(seller_id)]
+    if out and len(other) > len(out) // 2:
+        raise ShapeError("the seller filter was ignored (results came from other sellers)")
+    return [i for i in out if not i["seller_id"] or i["seller_id"] == str(seller_id)]
+
+
 def shipping_quote(item_id: str, zipcode: str, state: str = "TX"):
     """(shipping, handling) from ShopGoodwill's own calculator, or None.
 

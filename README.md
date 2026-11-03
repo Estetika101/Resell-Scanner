@@ -70,6 +70,29 @@ keeps your models and settings (the database is gitignored).
 - **Columns**: Bid now · Shipping (+ handling) · **Total now** (bid +
   shipping) · Your max (total) · **Room left** (max − total) · **Bid up to**
   (max − shipping: the highest bid that still lands under your max).
+- **My bids**: what you're bidding on, grouped by seller, with what else that
+  seller has that ends around the same time, so several wins can ship together.
+  - Tracking: install the userscript from My bids (Tampermonkey) and every bid
+    you place on ShopGoodwill is sent here; item pages also get a **Track on
+    roger** button. Or drag the **Track on roger** bookmarklet, paste an item
+    link, or tap ☆ on a Results row. All of these need roger reachable from the
+    browser (home network).
+  - Suggestions: roger reads the seller's live listings (sweep) and matches
+    them against every watch. With an Anthropic API key in Settings, Claude
+    Haiku reads the rest and picks what fits the "What you buy" profile, with a
+    one-line reason. Claude never prices anything; a pick becomes a buy only
+    when you make it a watch with your own max. Titles Claude has seen aren't
+    sent again. Spend is shown on the page (Haiku 5.5: $0.10 / $0.50 per
+    million tokens in / out, editable in Settings).
+  - Sellers you're bidding with are re-swept after a scan when the last sweep
+    is over 6 hours old; "Sweep now" does it at once.
+- **Import**: Watches → Import takes a file in export.json's shape (preview
+  first), or on roger: `python3 app.py import watchlists/more-watches-2026-11.json`
+  (`--dry-run` to preview, `--replace` to update existing watches).
+- **Search words**: ShopGoodwill ORs the words of a search, so roger sends a
+  keyword's model number on its own (SX110), or a watch's own "Search
+  ShopGoodwill for" words if set, and checks the full keyword itself. Scan
+  log → Keywords shows what each search found.
 - **Settings**: ZIP for shipping quotes, global red-flag and skip words, the
   good-buy thresholds, and an optional ntfy topic for a push when a new clean listing appears.
 - **export.json** (link on the Watches page) exports everything.
@@ -84,6 +107,8 @@ first version keeps your watches and puts them in a Cameras category.
 |---|---|
 | `app.py` | Web app, scan, database. `python3 app.py scan` runs one pass. |
 | `sgw.py` | ShopGoodwill client, ported from the retired scanner's adapter (`flip: archive/scanner/sources/shopgoodwill.py`), keeping its verified fixes: Pacific end times, listingType, HTML shipping quotes. |
+| `ai.py` | The Claude Haiku call for seller suggestions. |
+| `watchlists/` | Importable watch lists with their rationale. |
 | `sellers_seed.json` | Seller map from the retired scanner (flip `archive/scanner/sellers.yaml`), loaded once. |
 | `sgw-watch.db` | Your models, settings, listings, scan log. Back it up if you care. |
 | `tests/` | `python3 -m unittest discover tests`, against a local mock API. |

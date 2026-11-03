@@ -1,0 +1,491 @@
+[
+  {
+    "category": "Cameras",
+    "label": "Canon PowerShot A-series (more)",
+    "keywords": [
+      "Canon A520",
+      "Canon A540",
+      "Canon A570",
+      "Canon A590",
+      "Canon A630",
+      "Canon A40",
+      "Canon A75"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, sx, sd, elph",
+    "max_buy": 25,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): A-series is his highest-volume camera family, 15 sales, median $20 net; two A40 sales = $92.35 revenue. Value is per family, not per SKU (README).",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Nikon Coolpix S/L/numeric (measured)",
+    "keywords": [
+      "Coolpix S220",
+      "Coolpix S550",
+      "Coolpix L10",
+      "Coolpix L11",
+      "Coolpix 3100",
+      "Coolpix 3200"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only",
+    "max_buy": 30,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): S220 sold $98, S550 $85; L11 $75, L10 $65; 3100 $63, 3200 $33 (sale prices). Coolpix had his best camera median net ($35, n=8). L24 sold $8: not on this list.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Sony Cyber-shot W (measured, not in seed)",
+    "keywords": [
+      "Sony DSC-W5",
+      "Sony DSC-W330",
+      "Sony DSC-W560"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only",
+    "max_buy": 35,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): W560 sold $192, W330 $97, W5 $76 (W-series n=3, median $97). Compact ceiling $35 applies.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Sony Cyber-shot P (P7 + siblings)",
+    "keywords": [
+      "Sony DSC-P7",
+      "Sony DSC-P8",
+      "Sony DSC-P10",
+      "Sony DSC-P72"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, p200",
+    "max_buy": 20,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): P-series n=9, median sale $42.50, P7 $88 top; P200 sold $8, so P200 is excluded. Only P7 proven by SKU; siblings ride the family median, hence $20.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Olympus FE/VG (measured, not in seed)",
+    "keywords": [
+      "Olympus FE-220",
+      "Olympus FE-4020",
+      "Olympus VG-140"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "fe-220, fe220, fe 220, fe-4020, fe4020, fe 4020, vg-140, vg140, vg 140",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, stylus, mju",
+    "max_buy": 25,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): OLYMPUS-COMPACT comps were FE-220, FE-280, FE-4020, Stylus-7010, VG-140, median $86.68 sale. FE-280 and FE-20 are in the seed and in Marginspace sold lane, read 2026-11-03 (landed $31.55 and $19.91). Stylus/mju excluded by rule.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Canon ELPH SD (siblings of sold SD200/SD770)",
+    "keywords": [
+      "Canon SD1100",
+      "Canon SD1200",
+      "Canon SD1300",
+      "Canon SD750",
+      "Canon SD630",
+      "Canon SD800"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only",
+    "max_buy": 30,
+    "tier": "new",
+    "notes": "evidence: Marginspace sold lane, read 2026-11-03: SD200 landed $30.83 listed $79.95, SD770 landed $56.56 listed $129.95 (realized price not exposed). Mental Floss 2024-11-21 names the ELPH line as the Gen Z digicam pick. These SKUs unproven for him.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Sony Mavica floppy",
+    "keywords": [
+      "Sony Mavica"
+    ],
+    "search": [
+      "Mavica"
+    ],
+    "match_mode": "auto",
+    "match": "fd71, fd73, fd75, fd83, fd85, fd87, fd88, fd90, fd91, fd92, fd95, fd97, fd100, fd200",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, disks only, floppy disks, cd250, cd400, cd500, cd1000",
+    "max_buy": 20,
+    "tier": "new",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): three Mavica sales (MVC-FD73, FD88, FD91) sat unmatched in the sheet; config records the sales, not their net. Floppy FD models only; CD Mavicas excluded.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Canon PowerShot G10/G11/G12",
+    "keywords": [
+      "Canon G12",
+      "Canon G11",
+      "Canon G10"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, g9, g7, g15, g16, lens adapter, filter adapter",
+    "max_buy": 75,
+    "tier": "try",
+    "notes": "evidence: G12 was his best camera sale ever ($276 net) but on $0 cost, so it proves resale, not a buy price. A G9 lost ~$50 (Marginspace sold lane, read 2026-11-03: landed $184.79). Prosumer cap ~$90; $75 keeps a G12 buy honest. Buy one.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Kodak EasyShare V (dual-lens era)",
+    "keywords": [
+      "Kodak V550",
+      "Kodak V570",
+      "Kodak V610"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, dock, printer, frame, z612, z710, z740",
+    "max_buy": 15,
+    "tier": "try",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): V550 sold $35.04, C713 $49.52, C340 $3.50; Kodak compacts are thin. Only V-series kept; Z (bridge) and dock/printer listings excluded.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "GoPro Hero4/Hero5",
+    "keywords": [
+      "GoPro Hero4",
+      "GoPro Hero5"
+    ],
+    "search": [],
+    "match_mode": "auto",
+    "match": "hero4, hero 4, hero5, hero 5",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, housing only, mount only, mounts only, session, guitar",
+    "max_buy": 40,
+    "tier": "try",
+    "notes": "evidence: Marginspace sold lane, read 2026-11-03: one Hero4 Silver bundle sold, landed $36.73, listed $149.95 (realized price not exposed). One sale only. Housings and mounts alone are excluded.",
+    "enabled": true
+  },
+  {
+    "category": "Cameras",
+    "label": "Polaroid instant (Peter's exemption)",
+    "keywords": [
+      "Polaroid OneStep",
+      "Polaroid SX-70",
+      "Polaroid Now"
+    ],
+    "search": [
+      "OneStep",
+      "SX-70",
+      "Polaroid"
+    ],
+    "match_mode": "auto",
+    "match": "onestep, one step, sx-70, sx70, polaroid now",
+    "exclude": "for parts, lot, case only, box only, manual only, charger only, battery only, film only, film pack, tv, television, tablet, printer, sunglasses, instax",
+    "max_buy": 25,
+    "tier": "try",
+    "notes": "evidence: Peter's decision 2026-08-17 (config.yaml): 'no instant except polaroid'. He has never sold one; analog photography netted $2.30/item, so one test buy only.",
+    "enabled": true
+  },
+  {
+    "category": "Game consoles",
+    "label": "NES console bundle",
+    "keywords": [
+      "NES console",
+      "Nintendo Entertainment System",
+      "NES-001"
+    ],
+    "search": [
+      "NES-001",
+      "NES"
+    ],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "cartridge, cart, hdmi, clone, classic edition, nes classic, mini, retro-bit, retron, controller only, controllers only, empty box, box only, dust cover only, games only, game only, cartridge only, for parts",
+    "max_buy": 80,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): NES consoles were his two best games sales ($88, $46 net). Marginspace sold lane, read 2026-11-03: ~12 NES consoles/bundles sold, landed $37.60-$150.30, listed $150-$300. The $150 one is the outlier; $80 caps it.",
+    "enabled": true
+  },
+  {
+    "category": "Game consoles",
+    "label": "GameCube console",
+    "keywords": [
+      "GameCube console",
+      "Game Cube console",
+      "DOL-001"
+    ],
+    "search": [
+      "GameCube",
+      "DOL-001"
+    ],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "controller only, controllers only, memory card, games only, game only, disc only, discs only, wii, wavebird only, adapter, for parts, empty box, box only",
+    "max_buy": 70,
+    "tier": "winner",
+    "notes": "evidence: Marginspace sold lane, read 2026-11-03: two sold - DOL-101 + controller landed $70.45 listed $179.95; silver bundle landed $111.09 listed $250 (realized prices not exposed). Not in the 2024 sheet.",
+    "enabled": true
+  },
+  {
+    "category": "Game consoles",
+    "label": "PlayStation 1/2 console",
+    "keywords": [
+      "PS2 console",
+      "PlayStation 2 console",
+      "PS1 console",
+      "PSone console"
+    ],
+    "search": [
+      "PS2",
+      "PSone",
+      "PS1"
+    ],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "ps3, ps4, ps5, playstation 3, playstation 4, playstation 5, controller only, memory card, games only, game only, vr, portal, for parts",
+    "max_buy": 35,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): PlayStation consoles went 3-for-3 positive, $67 net total (~$22 each). Models not recorded; PS3 and later excluded as heavier and unmeasured.",
+    "enabled": true
+  },
+  {
+    "category": "Handhelds",
+    "label": "Game Boy Advance SP AGS-101",
+    "keywords": [
+      "AGS-101",
+      "Game Boy Advance SP 101"
+    ],
+    "search": [
+      "AGS-101",
+      "Gameboy",
+      "GBA"
+    ],
+    "match_mode": "auto",
+    "match": "ags-101, ags101, ags 101",
+    "exclude": "ips, modded, mod, replacement shell, custom shell, aftermarket, repro, charger only, games only, game only, case only, for parts",
+    "max_buy": 65,
+    "tier": "new",
+    "notes": "evidence: PriceCharting (fetched 2026-11-03, eBay-sold based, undated): AGS-101 loose $142-$166 (Graphite $150.93, Pearl Blue $165.54). Shells and IPS mods excluded: they are not the original backlit screen.",
+    "enabled": true
+  },
+  {
+    "category": "Handhelds",
+    "label": "Game Boy Advance SP (AGS-001)",
+    "keywords": [
+      "Game Boy Advance SP",
+      "Gameboy Advance SP"
+    ],
+    "search": [
+      "AGS-001",
+      "Gameboy",
+      "GBA"
+    ],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "ags-101, ags101, backlit, ips, modded, mod, shell, charger only, games only, game only, cartridge only, case only, for parts",
+    "max_buy": 40,
+    "tier": "new",
+    "notes": "evidence: PriceCharting (fetched 2026-11-03): front-lit SP loose $90-$104 (Platinum $90, Black $93.50). AGS-101 has its own watch, so it is excluded here.",
+    "enabled": true
+  },
+  {
+    "category": "Handhelds",
+    "label": "Game Boy Advance (original)",
+    "keywords": [
+      "Game Boy Advance AGB-001",
+      "Gameboy Advance console"
+    ],
+    "search": [
+      "AGB-001",
+      "Gameboy",
+      "GBA"
+    ],
+    "match_mode": "auto",
+    "match": "agb-001, agb001, game boy advance, gameboy advance",
+    "exclude": "sp, micro, ags, ips, modded, mod, shell, games only, game only, cartridge, cartridges, case only, for parts",
+    "max_buy": 35,
+    "tier": "new",
+    "notes": "evidence: PriceCharting (fetched 2026-11-03): original GBA loose $76-$80 (Glacier $80, Indigo $75.83). Unproven for him.",
+    "enabled": true
+  },
+  {
+    "category": "Handhelds",
+    "label": "PSP 1000/2000/3000",
+    "keywords": [
+      "PSP 3000",
+      "PSP 2000",
+      "PSP 1000"
+    ],
+    "search": [
+      "PSP"
+    ],
+    "match_mode": "auto",
+    "match": "psp-3000, psp 3000, psp3000, psp-3001, psp3001, psp-2000, psp 2000, psp2000, psp-2001, psp2001, psp-1000, psp 1000, psp1000, psp-1001, psp1001",
+    "exclude": "umd, games only, game only, go, battery only, charger only, case only, for parts",
+    "max_buy": 45,
+    "tier": "new",
+    "notes": "evidence: PriceCharting (fetched 2026-11-03): PSP-1000 loose $88.83, PSP-3000 $138.42. Batteries are often dead (~$12), so the max stays low. PSP Go and game-only listings excluded.",
+    "enabled": true
+  },
+  {
+    "category": "Handhelds",
+    "label": "Nintendo DS Lite",
+    "keywords": [
+      "Nintendo DS Lite",
+      "USG-001"
+    ],
+    "search": [
+      "USG-001",
+      "DS Lite"
+    ],
+    "match_mode": "auto",
+    "match": "ds lite, usg-001, usg001",
+    "exclude": "dsi, 3ds, 2ds, games only, game only, stylus only, charger only, case only, for parts",
+    "max_buy": 25,
+    "tier": "try",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): two DS sales (one 'Nintendo Ds & W/ Games And Case, Power Cords' $74.00); the scanner's $21.13 ceiling sat on n=2 (SPEC 4.6). Too thin for more than one test buy.",
+    "enabled": true
+  },
+  {
+    "category": "NES games",
+    "label": "Legend of Zelda (NES gold cart)",
+    "keywords": [
+      "Legend of Zelda NES",
+      "Zelda NES gold"
+    ],
+    "search": [
+      "Zelda"
+    ],
+    "match_mode": "all",
+    "match": "",
+    "exclude": "ii, adventure of link, links awakening, link's awakening, ocarina, majora, game boy, gameboy, gba, snes, n64, gamecube, wii, switch, 3ds, ds, poster, guide, figure, amiibo, lego, shirt, repro, reproduction, lot, box only, manual only",
+    "max_buy": 22,
+    "tier": "winner",
+    "notes": "evidence: Marginspace sold lane, read 2026-11-03: three sold - landed $9.96, $10.26, $23.09; listed $49.95-$59.95. Costs were allocated from lots. Singles only: game lots lost money in Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml).",
+    "enabled": true
+  },
+  {
+    "category": "NES games",
+    "label": "Mike Tyson's Punch-Out!! (NES)",
+    "keywords": [
+      "Punch-Out NES",
+      "Mike Tyson Punch-Out"
+    ],
+    "search": [
+      "Punch-Out",
+      "Tyson"
+    ],
+    "match_mode": "all",
+    "match": "",
+    "exclude": "super, snes, wii, poster, shirt, repro, reproduction, lot, box only, manual only",
+    "max_buy": 25,
+    "tier": "winner",
+    "notes": "evidence: Marginspace sold lane, read 2026-11-03: three sold - landed $8.75, $9.96, $14.02; listed $59.95-$69.95. Super Punch-Out (SNES) and the Wii game excluded.",
+    "enabled": true
+  },
+  {
+    "category": "iPods",
+    "label": "iPod Classic / Video",
+    "keywords": [
+      "iPod Classic",
+      "iPod Video"
+    ],
+    "search": [
+      "iPod"
+    ],
+    "match_mode": "all",
+    "match": "",
+    "exclude": "nano, shuffle, touch, mini, speaker, speakers, dock speaker, docking station, boombox, radio, alarm clock, skin, armband, cable only, for parts",
+    "max_buy": 40,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): iPods went 5-for-5 with zero losses ($99 net, ~$20 each); model mix not recorded beyond one Nano. TechRepublic 2026-05-04: Classic and Nano searches 'rising significantly'. Budget ~$15 for a battery.",
+    "enabled": true
+  },
+  {
+    "category": "iPods",
+    "label": "iPod Nano",
+    "keywords": [
+      "iPod Nano"
+    ],
+    "search": [
+      "iPod"
+    ],
+    "match_mode": "all",
+    "match": "",
+    "exclude": "classic, shuffle, touch, mini, speaker, speakers, docking station, armband, skin, watch band, cable only, for parts",
+    "max_buy": 20,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): iPods 5-for-5, $99 net; one sale was a Nano A1236 (3rd gen). TechRepublic 2026-05-04: Nano searches rising.",
+    "enabled": true
+  },
+  {
+    "category": "Electronics",
+    "label": "Numark TTX turntable",
+    "keywords": [
+      "Numark TTX"
+    ],
+    "search": [
+      "TTX",
+      "Numark"
+    ],
+    "match_mode": "auto",
+    "match": "ttx, ttx1, ttxusb",
+    "exclude": "dust cover only, platter only, needle only, cartridge only, slipmat, manual only, for parts",
+    "max_buy": 75,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): two Numark TTX turntables netted $106 and $102; the config called it 'repeatable, saved-search it'. Heavy: shipping is quoted, so the max is landed.",
+    "enabled": true
+  },
+  {
+    "category": "Electronics",
+    "label": "Epson Home Cinema 3500",
+    "keywords": [
+      "Epson Home Cinema 3500",
+      "Epson PowerLite 3500"
+    ],
+    "search": [
+      "Epson 3500",
+      "PowerLite"
+    ],
+    "match_mode": "auto",
+    "match": "",
+    "exclude": "lamp only, bulb only, remote only, mount only, for parts",
+    "max_buy": 60,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): Epson PowerLite Home Cinema 3500 was his best electronics sale ($158 net). One sale; siblings left out. Lamp hours unknown on SGW, so $60.",
+    "enabled": true
+  },
+  {
+    "category": "Electronics",
+    "label": "CRT TV (local pickup)",
+    "keywords": [
+      "CRT TV",
+      "Trinitron"
+    ],
+    "search": [
+      "CRT",
+      "Trinitron"
+    ],
+    "match_mode": "auto",
+    "match": "crt, trinitron",
+    "exclude": "remote only, stand only, mount, projector, for parts",
+    "max_buy": 20,
+    "tier": "winner",
+    "notes": "evidence: Flipping 2.0 (186 sales Jan 2024-Jan 2025, archive/scanner/config.yaml): CRT TVs marketed for retro gaming netted $60 each on $0 cost. Only works as local pickup; shipped quotes will put them over max.",
+    "enabled": true
+  }
+]

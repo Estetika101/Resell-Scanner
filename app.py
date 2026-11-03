@@ -31,6 +31,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from zoneinfo import ZoneInfo
 
+import ai
 import sgw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -40,7 +41,7 @@ TIERS = ("winner", "new", "try")
 
 # How a listing's title has to relate to a watch's keywords.
 MATCH_MODES = {
-    "auto": "Automatic: model number when the keyword ends in one (SX110), otherwise all words",
+    "auto": "Automatic: a distinctive model number on its own (SX110), otherwise every word (PSP 3000, Canon G12)",
     "model": "Model number: title has the last word of a keyword (SX110), digit-bounded",
     "all": "All words: title has every word of at least one keyword",
     "search": "Anything the search returns",
@@ -75,6 +76,15 @@ DEFAULTS = {
     "ntfy_topic": "",
     "good_room": "5",
     "good_hours": "24",
+    "sweep_pages": "10",
+    "search_pages": "3",
+    "sweep_days": "3",
+    "anthropic_key": "",
+    "ai_model": "claude-haiku-5-5",
+    "ai_max_titles": "300",
+    "ai_price_in": "0.10",
+    "ai_price_out": "0.50",
+    "ai_profile": ai.DEFAULT_PROFILE,
     "red_flags": "parts, repair, as is, as-is, not working, broken, lens error, untested",
     "skip_words": "case only, battery only, charger only, manual only, lens cap, box only",
 }
@@ -152,6 +162,8 @@ def init():
             con.execute("ALTER TABLE models ADD COLUMN match_mode TEXT NOT NULL DEFAULT 'model'")
         if "exclude" not in cols:
             con.execute("ALTER TABLE models ADD COLUMN exclude TEXT NOT NULL DEFAULT ''")
+        if "search" not in _columns(con, "models"):
+            con.execute("ALTER TABLE models ADD COLUMN search TEXT NOT NULL DEFAULT ''")
         if "seller_id" not in _columns(con, "listings"):
             con.execute("ALTER TABLE listings ADD COLUMN seller_id TEXT")
         con.executescript("""
@@ -184,6 +196,7 @@ def init():
                                  str(v.get("zip") or ""), int(bool(v.get("allows_pickup"))),
                                  int(v.get("combine_ok", True) is not False), int(bool(v.get("drivable")))))
             con.execute("INSERT INTO settings VALUES ('sellers_seeded', ?)", (now_iso(),))
+        init_bids(con)
 
         fresh = con.execute("SELECT COUNT(*) FROM settings WHERE key='seeded'").fetchone()[0] == 0
         if fresh and con.execute("SELECT COUNT(*) FROM models").fetchone()[0] == 0:
@@ -277,9 +290,17 @@ def matches(model, title: str) -> bool:
     if mode == "auto":
         # Per keyword: one that ends in a model number (SX110, Zi8, FE-280)
         # matches on that number; plain words (iPod Classic) need every word.
+        # A token stands alone only when it's distinctive: letters and digits,
+        # 4+ characters (SX110, Zi8x, FE-280). "PSP 3000" or "Canon A40" would
+        # otherwise match any 3000 or a Galaxy A40, so those need every word.
         for term in term_list(model["terms"]):
-            if re.search(r"\d", term.split()[-1]):
-                if title_matches(title, [_model_token(term)]):
+            tok = _model_token(term)
+            core = re.sub(r"[^a-z0-9]", "", tok)
+            if re.search(r"\d", tok) and re.search(r"[a-z]", core) and len(core) >= 4 and len(term.split()) > 1:
+                if title_matches(title, [tok]):
+                    return True
+            elif re.search(r"\d", tok) and len(term.split()) == 1:
+                if title_matches(title, [tok]):
                     return True
             elif _all_words(title, term):
                 return True
@@ -296,6 +317,24 @@ def flags_for(title: str, red: list[str]) -> list[str]:
 
 
 # ---------------------------------------------------------------- scan
+
+def search_text_for(term: str) -> str:
+    """What to actually send ShopGoodwill for a keyword.
+
+    MEASURED by the retired scanner (flip archive/scanner/config.yaml, live
+    term audit): the search ORs multi-word terms and has no phrase search, so
+    "Canon SX110" returns every Canon and every SX110, and the junk crowds the
+    real thing out of the first pages. A distinctive model token on its own
+    wins. So a keyword ending in a letters-and-digits model (SX110, Zi8,
+    FE-280, DSC-W7) is searched as that token alone; the brand is still
+    checked here, by the watch's match rule. Pure numbers (Coolpix 2500) and
+    plain words (iPod Classic) are sent as written.
+    """
+    last = term.split()[-1]
+    if re.search(r"\d", last) and re.search(r"[A-Za-z]", last) and len(last) >= 3:
+        return last
+    return term
+
 
 def run_scan(trigger="manual") -> str:
     lock = open(LOCK_PATH, "w")
@@ -320,15 +359,18 @@ def _scan(trigger):
     # One request per distinct keyword, even when two watches share one.
     by_term: dict[str, list[dict]] = {}
     for m in models:
-        for t in term_list(m["terms"]):
-            by_term.setdefault(t.lower(), []).append(m)
+        searches = term_list(m.get("search") or "") or [search_text_for(t) for t in term_list(m["terms"])]
+        for q in searches:
+            ms = by_term.setdefault(q.lower(), [])
+            if m not in ms:
+                ms.append(m)
     jobs = list(by_term.items())
     errors, matched, seen = [], 0, set()
 
     for n, (term, ms) in enumerate(jobs, 1):
         _progress(scan_id, f"Searching {n}/{len(jobs)}: {term}")
         try:
-            results = sgw.search(term)
+            results = sgw.search(term, pages=int(float(s["search_pages"])))
         except sgw.ShapeError as e:
             errors.append(f"{term}: {e}")
             break  # the API changed; stop rather than hammer it with bad requests
@@ -360,6 +402,12 @@ def _scan(trigger):
                     flags=excluded.flags, last_seen=excluded.last_seen
                 """, dict(li, model_id=m["id"], term=term, flags=", ".join(flags_for(li["title"], red)),
                           is_auction=int(li["is_auction"]), now=now_iso()))
+            hits = sum(1 for li in results if not any(w in li["title"].lower() for w in skip)
+                       and any(matches(m, li["title"]) for m in ms))
+            con.execute("""INSERT INTO keyword_stats(searched, watches, results, matched, at) VALUES (?,?,?,?,?)
+                           ON CONFLICT(searched) DO UPDATE SET watches=excluded.watches, results=excluded.results,
+                           matched=excluded.matched, at=excluded.at""",
+                        (term, ", ".join(m["label"] for m in ms), len(results), hits, now_iso()))
 
     # Real shipping, only for listings that could still come in under max buy
     # on the bid alone, and only once per item (shipping doesn't change).
@@ -413,6 +461,11 @@ def _scan(trigger):
                     "WHERE id=?", (now_iso(), status, matched, quotes, "\n".join(errors), scan_id))
         con.execute("DELETE FROM scans WHERE id < ? - 200", (scan_id,))
     _push_new(s)
+    try:
+        sweep_due()
+        prune_bids()
+    except Exception:
+        traceback.print_exc()  # a failed sweep must not fail the scan; its error is on My bids
     return f"Scan {status}: {matched} matches, {quotes} shipping quotes, {len(errors)} errors."
 
 
@@ -670,6 +723,12 @@ a.more{font-size:13px}h2 a.more{font-weight:400;margin-left:6px}h2 .chip{font-we
 tr.flagged td{background:color-mix(in srgb,var(--bad) 4%,transparent)}
 .sellerbar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:6px 0 10px}.sellerbar ul{margin:6px 0 0;padding-left:18px;color:var(--mut);font-size:14px}
 button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+button.star{border:0;background:none;padding:0 6px 0 0;font-size:17px;line-height:1;color:var(--mut);cursor:pointer}button.star.on{color:#e3a008}
+.chip.ai{background:#f3e8fd;color:#7b2cbf}@media (prefers-color-scheme:dark){.chip.ai{background:#3b2350;color:#d7aefb}}
+.sellerblock{margin:18px 0 26px}h3{font-size:14px;margin:14px 0 6px}h3 small{font-weight:400;color:var(--mut)}
+details.setup,details.ended{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0}
+form.bar input[name=item]{flex:1 1 200px;min-width:0}details.setup ol{padding-left:20px}details.setup a.btn{word-break:normal}
+details.setup summary,details.ended summary{cursor:pointer;font-weight:600}details.setup li{margin:8px 0}
 @media (max-width:720px){.toolbar .q{flex-basis:100%}.pills{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:2px}
 .pop{position:fixed;left:0;right:0;top:auto;bottom:0;max-width:none;border-radius:14px 14px 0 0;max-height:70vh;overflow:auto;padding:16px;box-shadow:0 0 0 100vmax rgba(0,0,0,.35)}
 details.pill>summary{white-space:nowrap}
@@ -709,7 +768,7 @@ def page(title, body, active="", refresh=None):
     else:
         status = "No scans yet."
     nav = "".join(f"<a href='{h}' class='{'on' if a == active else ''}'>{t}</a>"
-                  for h, t, a in (("/", "Results", "results"), ("/models", "Watches", "models"),
+                  for h, t, a in (("/", "Results", "results"), ("/bids", "My bids", "bids"), ("/models", "Watches", "models"),
                                   ("/categories", "Categories", "categories"), ("/locations", "Locations", "locations"),
                                   ("/scans", "Scan log", "scans"), ("/settings", "Settings", "settings")))
     meta = f"<meta http-equiv='refresh' content='{refresh}'>" if refresh else ""
@@ -901,6 +960,13 @@ def results_page(q):
     show_seller = group != "location"
 
     in_seller_view = f.get("seller") and len(f["seller"]) == 1
+    with db() as con:
+        tracked = {r[0] for r in con.execute("SELECT item_id FROM bids")}
+
+    def star(r):
+        on = r["item_id"] in tracked
+        return (f"<form method=post action='/bids/{e(r['item_id'])}/toggle' class=inline><button class='star{' on' if on else ''}' "
+                f"title='{'Stop tracking' if on else 'I am bidding on this'}' aria-pressed={'true' if on else 'false'}>{'★' if on else '☆'}</button></form>")
 
     def more(r):
         n = r["seller_live"] - 1
@@ -924,7 +990,7 @@ def results_page(q):
             if show_seller:
                 where = f" · {e(_place(r))}" + (" <span class='chip loc'>local</span>" if r["local"] else "")
             trs.append(f"""<tr class='{'flagged' if r['flags'] else ''}'><td class=hide-sm>{img}</td>
-<td><a href='https://shopgoodwill.com/item/{e(r['item_id'])}' target=_blank rel=noopener>{e(r['title'])}</a>{badges}{fl}
+<td>{star(r)}<a href='https://shopgoodwill.com/item/{e(r['item_id'])}' target=_blank rel=noopener>{e(r['title'])}</a>{badges}{fl}
 <div><small>{e(r['category'] or '')} › {e(r['label'])} · {e(r['tier'])}{where}</small></div>
 {more(r)}
 <div class=show-sm><small>Ends {e(fmt_end(r['end_utc'], s))}</small></div></td>
@@ -1127,6 +1193,8 @@ def models_page(f, msg="", form=None, err=""):
                                                                      "auto": "automatic",
                                                                      "search": "any search hit"}.get(m["match_mode"], "")
         extra = f" · excludes: {e(m['exclude'])}" if m["exclude"].strip() else ""
+        if (m.get("search") or "").strip():
+            extra = f" · searches: {e(', '.join(term_list(m['search'])))}" + extra
         return f"""<tr class='{'' if m['enabled'] else 'off'}'>
 <td><b>{e(m['label'])}</b><div>{chips(m)}</div>
 <form method=post action='/models/{m['id']}/term-add' class=addterm><input name=term placeholder='Add keyword' aria-label='Add keyword to {e(m['label'])}'><button class=sm>Add</button></form>
@@ -1146,10 +1214,10 @@ def models_page(f, msg="", form=None, err=""):
         for name, items in groups.items()) or "<p class=mut>No watches match.</p>"
     bar = f"""<form class=bar method=get>{_select('cat', [(c['id'], c['name']) for c in cats], f.get('cat', ''), 'All categories')}
 <input name=q value='{e(f.get('q', ''))}' placeholder='Find a watch or keyword' size=22><button>Find</button>
-<a class=btn href='#add'>+ New watch</a> <a class=btn href='/categories'>Categories</a></form>"""
+<a class=btn href='#add'>+ New watch</a> <a class=btn href='/import'>Import</a> <a class=btn href='/categories'>Categories</a></form>"""
     body = (f"<div class=msg>{e(msg)}</div>" if msg else "") + bar + tables + \
         "<h2 id=add>New watch</h2>" + model_form(form or {"category_id": f.get("cat", "")}, "/models", "Add watch", err) + \
-        "<p class=mut>Export: <a href='/export.json'>export.json</a></p>"
+        "<p class=mut><a href='/import'>Import watches</a> · Export: <a href='/export.json'>export.json</a></p>"
     return page("Watches", body, "models")
 
 
@@ -1166,7 +1234,9 @@ def model_form(f, action, label, err=""):
 <label>Category<select name=category_id>{cat_opts}<option value=new>+ New category…</option></select></label></div>
 <label class=newcat>New category name (only if you picked "+ New category")<input name=new_category value='{e(f.get('new_category', ''))}'></label>
 <label>Search keywords, one per line (each is one ShopGoodwill search)<textarea name=terms required placeholder='iPod Classic 160GB&#10;iPod Classic 120GB'>{e(f.get('terms', ''))}</textarea></label>
-<label>How a title has to match<select name=match_mode>{mode_opts}</select></label>
+<label>Search ShopGoodwill for (optional, one per line). ShopGoodwill ORs the words of a search, so one distinctive word works best:
+<i>Mavica</i>, <i>GameCube</i>, <i>PSP</i>. Blank = the model number of each keyword, or the keyword as written.<textarea name=search rows=2 placeholder='GameCube&#10;DOL-001'>{e(f.get('search', ''))}</textarea></label>
+<label>How a title has to match the keywords<select name=match_mode>{mode_opts}</select></label>
 <label>Or: title must contain one of these (comma separated, overrides the above)<input name=match value='{e(f.get('match', ''))}' placeholder='F31fd, F31 fd'></label>
 <label>Exclude listings with any of these words (comma separated)<input name=exclude value='{e(f.get('exclude', ''))}' placeholder='nano, shuffle, case'></label>
 <div class=row><label>Max landed buy ($)<input name=max_buy type=number step=0.01 min=1 required value='{e(f.get('max_buy', ''))}'></label>
@@ -1202,8 +1272,19 @@ def scans_page():
 <td class='{'pos' if x['status'] == 'ok' else 'err'}'>{e(x['status'])}</td><td class=n>{x['matches']}</td>
 <td class=n>{x['quotes']}</td><td><small style='white-space:pre-wrap'>{e(x['errors'] or x['progress'])}</small></td></tr>"""
                   for x in sc)
+    with db() as con:
+        ks = con.execute("SELECT * FROM keyword_stats ORDER BY matched, results DESC").fetchall()
+    ktrs = "".join(f"""<tr><td><b>{e(k['searched'])}</b><div><small>{e(k['watches'])}</small></div></td>
+<td class=n>{k['results']}</td><td class='n {'err' if not k['matched'] else ''}'>{k['matched']}</td>
+<td><small>{e(fmt_ago(k['at'], s))}</small></td></tr>""" for k in ks)
+    keywords = ("<h2>Keywords, last run</h2><p class=mut>Each row is one ShopGoodwill search. <b>Results</b> is what came back "
+                "(up to 40 per page read); <b>matched</b> is how many fit a watch. Zero matched with many results means "
+                "the search is mostly noise; zero results means nothing is listed right now, or the keyword is wrong. "
+                "Keywords ending in a model number are searched as that number alone, because ShopGoodwill ORs the words of a search.</p>"
+                f"<div class=scroll><table><tr><th>Searched as</th><th class=n>Results</th><th class=n>Matched</th><th>When</th></tr>{ktrs}</table></div>"
+                if ks else "")
     return page("Scan log", "<div class=scroll><table><tr><th>Started</th><th>By</th><th>Status</th><th class=n>Matches</th>"
-                "<th class=n>Quotes</th><th>Errors</th></tr>" + trs + "</table></div>", "scans")
+                "<th class=n>Quotes</th><th>Errors</th></tr>" + trs + "</table></div>" + keywords, "scans")
 
 
 def settings_page(msg=""):
@@ -1215,6 +1296,15 @@ def settings_page(msg=""):
 {f('timezone', 'Time zone')}
 <div class=row>{f('good_room', 'Good buy: at least this much room left ($)', 'number')}{f('good_hours', 'Good buys ending soon: within (hours)', 'number')}</div>
 <div class=row>{f('ntfy_server', 'ntfy server')}{f('ntfy_topic', 'ntfy topic (blank = no push)')}</div>
+<h2 id=ai>Claude suggestions (My bids)</h2>
+<label>Anthropic API key {"<small>(saved: …" + e(s['anthropic_key'][-4:]) + ". Leave blank to keep it, type <b>clear</b> to remove it.)</small>" if s['anthropic_key'] else "<small>(blank = suggestions off; get one at console.anthropic.com)</small>"}
+<input name=anthropic_key type=password autocomplete=off value=''></label>
+<div class=row>{f('ai_model', 'Model')}{f('ai_max_titles', 'Max titles per seller sweep', 'number')}</div>
+<div class=row>{f('ai_price_in', '$ per million input tokens', 'number')}{f('ai_price_out', '$ per million output tokens', 'number')}</div>
+<label>What you buy (Claude reads this before picking)<textarea name=ai_profile rows=7>{e(s['ai_profile'])}</textarea></label>
+<div class=row>{f('search_pages', 'Pages of 40 to read per keyword', 'number')}<span></span></div>
+<div class=row>{f('sweep_pages', 'Seller sweep: pages of 40 to read', 'number')}{f('sweep_days', 'Seller sweep: days past your bid to include', 'number')}</div>
+<h2>Every watch</h2>
 <label>Red flags, every watch (comma separated; flagged, still shown)<textarea name=red_flags>{e(s['red_flags'])}</textarea></label>
 <label>Skip words, every watch (comma separated; dropped)<textarea name=skip_words>{e(s['skip_words'])}</textarea></label>
 <div><button class=pri>Save</button></div></form>"""
@@ -1226,6 +1316,7 @@ def parse_model(con, f):
     terms = term_list(f.get("terms", "").replace(",", "\n") if "\n" not in f.get("terms", "") else f.get("terms", ""))
     data = {"label": f.get("label", "").strip() or (terms[0] if terms else ""), "terms": "\n".join(terms),
             "match": f.get("match", "").strip(), "exclude": f.get("exclude", "").strip(),
+            "search": "\n".join(term_list(f.get("search", "").replace(",", "\n"))),
             "match_mode": f.get("match_mode") if f.get("match_mode") in MATCH_MODES else "auto",
             "tier": f.get("tier") if f.get("tier") in TIERS else "winner", "notes": f.get("notes", "").strip()}
     try:
@@ -1265,6 +1356,598 @@ def back(path, msg):
     return path + ("&" if "?" in path else "?") + "msg=" + urllib.parse.quote(msg)
 
 
+# ---------------------------------------------------------------- bids, seller sweeps, suggestions
+
+SWEEP_LOCK = DB_PATH + ".sweep.lock"
+SWEEP_STALE_HOURS = 6
+
+
+def init_bids(con):
+    con.executescript("""
+    CREATE TABLE IF NOT EXISTS bids (
+      item_id TEXT PRIMARY KEY,
+      seller_id TEXT, title TEXT, price REAL, bids INTEGER, is_auction INTEGER,
+      end_utc TEXT, image TEXT, seller TEXT,
+      my_max REAL,                    -- what Peter says he'll go to; NULL = not said
+      detected_amount REAL,           -- the amount the userscript saw in the bid request, if any
+      source TEXT, added_at TEXT, updated_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS seller_items (
+      item_id TEXT PRIMARY KEY, seller_id TEXT NOT NULL,
+      title TEXT, price REAL, bids INTEGER, is_auction INTEGER, end_utc TEXT, image TEXT, swept_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS seller_items_seller ON seller_items(seller_id);
+    CREATE TABLE IF NOT EXISTS suggestions (
+      item_id TEXT PRIMARY KEY, seller_id TEXT NOT NULL,
+      kind TEXT NOT NULL,             -- watch | ai
+      model_id INTEGER, category TEXT, reason TEXT,
+      hidden INTEGER NOT NULL DEFAULT 0, created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS ai_seen (    -- titles already shown to Claude, so a re-sweep costs nothing
+      item_id TEXT PRIMARY KEY, picked INTEGER NOT NULL, at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS ai_usage (
+      id INTEGER PRIMARY KEY, at TEXT, seller_id TEXT, model TEXT,
+      titles INTEGER, input_tokens INTEGER, output_tokens INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS keyword_stats (   -- what each search found on its last run
+      searched TEXT PRIMARY KEY, watches TEXT, results INTEGER, matched INTEGER, at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS sweeps (
+      seller_id TEXT PRIMARY KEY, swept_at TEXT, status TEXT, items INTEGER, matched INTEGER,
+      ai_picked INTEGER, error TEXT NOT NULL DEFAULT ''
+    );
+    """)
+    if not con.execute("SELECT 1 FROM settings WHERE key='track_token'").fetchone():
+        import secrets
+        con.execute("INSERT INTO settings VALUES ('track_token', ?)", (secrets.token_urlsafe(12),))
+
+
+def _ensure_seller(seller_id, item_id):
+    if not seller_id:
+        return
+    with db() as con:
+        if con.execute("SELECT 1 FROM sellers WHERE id=?", (seller_id,)).fetchone():
+            return
+    info = sgw.seller_info(item_id)
+    if info:
+        with db() as con:
+            con.execute("""INSERT OR IGNORE INTO sellers(id, name, city, state, zip, allows_pickup, combine_ok, fetched_at)
+                           VALUES (:id,:name,:city,:state,:zip,:allows_pickup,:combine_ok,:now)""",
+                        dict(info, allows_pickup=int(info["allows_pickup"]), combine_ok=int(info["combine_ok"]), now=now_iso()))
+
+
+def track(item_id, source, amount=None):
+    """Start tracking a listing as one Peter is bidding on. Returns (ok, message, row)."""
+    item_id = str(item_id or "").strip()
+    m = re.search(r"item/(\d{1,12})", item_id) or re.fullmatch(r"#?(\d{1,12})", item_id)
+    if not m:
+        return False, "That isn't a ShopGoodwill item number or link.", None
+    item_id = m.group(1)
+    with db() as con:
+        known = con.execute("SELECT * FROM listings WHERE item_id=?", (item_id,)).fetchone()
+        si = con.execute("SELECT * FROM seller_items WHERE item_id=?", (item_id,)).fetchone()
+    if known:
+        d = dict(known)
+    else:
+        d = sgw.item_detail(item_id)
+        if not d and si:
+            d = dict(si)
+        if not d:
+            return False, f"Couldn't read item {item_id} from ShopGoodwill.", None
+    amt = None
+    try:
+        amt = float(amount) if amount not in (None, "") else None
+    except (TypeError, ValueError):
+        amt = None
+    row = {"item_id": item_id, "seller_id": d.get("seller_id") or "", "title": d.get("title") or "",
+           "price": d.get("price") or 0, "bids": d.get("bids") or 0, "is_auction": int(bool(d.get("is_auction", 1))),
+           "end_utc": d.get("end_utc"), "image": d.get("image") or "", "seller": d.get("seller") or "",
+           "amt": amt, "source": source, "now": now_iso()}
+    with db() as con:
+        con.execute("""
+          INSERT INTO bids(item_id, seller_id, title, price, bids, is_auction, end_utc, image, seller,
+                           detected_amount, source, added_at, updated_at)
+          VALUES (:item_id,:seller_id,:title,:price,:bids,:is_auction,:end_utc,:image,:seller,:amt,:source,:now,:now)
+          ON CONFLICT(item_id) DO UPDATE SET price=excluded.price, bids=excluded.bids, end_utc=excluded.end_utc,
+            seller_id=COALESCE(NULLIF(excluded.seller_id,''), bids.seller_id),
+            detected_amount=COALESCE(excluded.detected_amount, bids.detected_amount), updated_at=excluded.updated_at""", row)
+        con.execute("DELETE FROM suggestions WHERE item_id=?", (item_id,))
+    _ensure_seller(row["seller_id"], item_id)
+    if row["seller_id"]:
+        threading.Thread(target=sweep_if_stale, args=(row["seller_id"],), daemon=True).start()
+    return True, f"Tracking “{row['title'][:70]}”.", row
+
+
+def untrack(item_id):
+    with db() as con:
+        con.execute("DELETE FROM bids WHERE item_id=?", (str(item_id),))
+
+
+def sweep_if_stale(seller_id):
+    with db() as con:
+        r = con.execute("SELECT swept_at FROM sweeps WHERE seller_id=?", (seller_id,)).fetchone()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=SWEEP_STALE_HOURS)).isoformat(timespec="seconds")
+    if not r or (r["swept_at"] or "") < cutoff:
+        return sweep_seller(seller_id)
+    return "fresh"
+
+
+def sweep_due(limit=3):
+    """Sweep sellers that have live tracked bids and haven't been swept lately. Called after each scan."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=SWEEP_STALE_HOURS)).isoformat(timespec="seconds")
+    with db() as con:
+        due = [r["seller_id"] for r in con.execute("""
+          SELECT DISTINCT b.seller_id FROM bids b LEFT JOIN sweeps w ON w.seller_id = b.seller_id
+          WHERE b.seller_id != '' AND b.end_utc > ? AND (w.swept_at IS NULL OR w.swept_at < ?)
+          LIMIT ?""", (now_iso(), cutoff, limit))]
+    return [sweep_seller(sid) for sid in due]
+
+
+def sweep_seller(seller_id):
+    """Pull a seller's live listings, match them to every watch, then (with a key) ask Claude about the rest."""
+    lock = open(SWEEP_LOCK, "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock.close()
+        return "busy"
+    try:
+        return _sweep(seller_id)
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
+
+
+def _sweep(seller_id):
+    s = settings()
+    with db() as con:
+        con.execute("""INSERT INTO sweeps(seller_id, swept_at, status, items, matched, ai_picked, error)
+                       VALUES (?,?, 'running', 0, 0, 0, '') ON CONFLICT(seller_id) DO UPDATE SET status='running', error=''""",
+                    (seller_id, now_iso()))
+        last_bid_end = con.execute("SELECT MAX(end_utc) FROM bids WHERE seller_id=?", (seller_id,)).fetchone()[0]
+    try:
+        items = sgw.seller_listings(seller_id, pages=int(float(s["sweep_pages"])))
+    except Exception as ex:
+        with db() as con:
+            con.execute("UPDATE sweeps SET status='failed', swept_at=?, error=? WHERE seller_id=?",
+                        (now_iso(), f"{type(ex).__name__}: {ex}", seller_id))
+        return "failed"
+    # Only what ends near your bids can realistically be won and shipped together.
+    horizon = datetime.fromisoformat(last_bid_end) if last_bid_end else datetime.now(timezone.utc)
+    horizon = (max(horizon, datetime.now(timezone.utc)) + timedelta(days=float(s["sweep_days"]))).isoformat(timespec="seconds")
+    skip = words(s["skip_words"])
+    items = [i for i in items if i["end_utc"] and now_iso() < i["end_utc"] <= horizon]
+    with db() as con:
+        con.execute("DELETE FROM seller_items WHERE seller_id=?", (seller_id,))
+        for i in items:
+            con.execute("""INSERT OR REPLACE INTO seller_items(item_id, seller_id, title, price, bids, is_auction, end_utc, image, swept_at)
+                           VALUES (?,?,?,?,?,?,?,?,?)""", (i["item_id"], seller_id, i["title"], i["price"], i["bids"],
+                                                           int(i["is_auction"]), i["end_utc"], i["image"], now_iso()))
+        tracked = {r[0] for r in con.execute("SELECT item_id FROM bids")}
+        hidden = {r[0] for r in con.execute("SELECT item_id FROM suggestions WHERE hidden=1")}
+        con.execute("DELETE FROM suggestions WHERE seller_id=? AND hidden=0", (seller_id,))
+        models = [dict(r) for r in con.execute("SELECT * FROM models WHERE enabled=1 ORDER BY id")]
+
+    # 1. Your watches. "Anything the search returns" watches are skipped: without a search there is nothing to trust.
+    candidates = [i for i in items if i["item_id"] not in tracked and i["item_id"] not in hidden
+                  and not any(w in i["title"].lower() for w in skip)]
+    matched, rest = 0, []
+    with db() as con:
+        for i in candidates:
+            m = next((m for m in models if (m["match_mode"] != "search" or m["match"].strip()) and matches(m, i["title"])), None)
+            if m:
+                matched += 1
+                con.execute("INSERT OR REPLACE INTO suggestions(item_id, seller_id, kind, model_id, category, reason, created_at) "
+                            "VALUES (?,?, 'watch', ?, NULL, ?, ?)",
+                            (i["item_id"], seller_id, m["id"], f"Matches your watch {m['label']} (max ${m['max_buy']:.0f} total)", now_iso()))
+            else:
+                rest.append(i)
+
+    # 2. Claude, only with a key, only for titles it hasn't seen, capped.
+    picked, err = 0, ""
+    key = s["anthropic_key"].strip()
+    if key and rest:
+        with db() as con:
+            seen = {r[0]: r[1] for r in con.execute("SELECT item_id, picked FROM ai_seen")}
+        # Earlier picks for listings still live come back without a new call.
+        with db() as con:
+            for i in rest:
+                if seen.get(i["item_id"]) == 1:
+                    old = con.execute("SELECT 1 FROM suggestions WHERE item_id=?", (i["item_id"],)).fetchone()
+                    if not old:
+                        con.execute("INSERT INTO suggestions(item_id, seller_id, kind, reason, created_at) VALUES (?,?, 'ai', ?, ?)",
+                                    (i["item_id"], seller_id, "Suggested by Claude on an earlier sweep.", now_iso()))
+                    picked += 1
+        fresh = [i for i in rest if i["item_id"] not in seen][: int(float(s["ai_max_titles"]))]
+        for start in range(0, len(fresh), 150):
+            batch = fresh[start:start + 150]
+            try:
+                picks, usage = ai.suggest(key, s["ai_model"].strip() or "claude-haiku-5-5", s["ai_profile"],
+                                          [{"id": i["item_id"], "title": i["title"], "price": i["price"]} for i in batch])
+            except ai.AIError as ex:
+                err = str(ex)
+                break
+            by_id = {p["id"]: p for p in picks}
+            with db() as con:
+                con.execute("INSERT INTO ai_usage(at, seller_id, model, titles, input_tokens, output_tokens) VALUES (?,?,?,?,?,?)",
+                            (now_iso(), seller_id, s["ai_model"], len(batch), usage["input_tokens"], usage["output_tokens"]))
+                for i in batch:
+                    con.execute("INSERT OR REPLACE INTO ai_seen VALUES (?,?,?)", (i["item_id"], int(i["item_id"] in by_id), now_iso()))
+                    p = by_id.get(i["item_id"])
+                    if p:
+                        picked += 1
+                        con.execute("INSERT OR REPLACE INTO suggestions(item_id, seller_id, kind, category, reason, created_at) "
+                                    "VALUES (?,?, 'ai', ?, ?, ?)", (i["item_id"], seller_id, p["category"], p["reason"], now_iso()))
+    with db() as con:
+        con.execute("UPDATE sweeps SET swept_at=?, status=?, items=?, matched=?, ai_picked=?, error=? WHERE seller_id=?",
+                    (now_iso(), "partial" if err else "ok", len(items), matched, picked, err, seller_id))
+    return "partial" if err else "ok"
+
+
+def prune_bids():
+    week = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat(timespec="seconds")
+    day = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(timespec="seconds")
+    month = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(timespec="seconds")
+    with db() as con:
+        con.execute("DELETE FROM bids WHERE end_utc < ?", (week,))
+        con.execute("DELETE FROM seller_items WHERE end_utc < ?", (day,))
+        con.execute("DELETE FROM suggestions WHERE item_id NOT IN (SELECT item_id FROM seller_items)")
+        con.execute("DELETE FROM ai_seen WHERE at < ?", (month,))
+
+
+def ai_spend(days=30):
+    s = settings()
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+    with db() as con:
+        r = con.execute("SELECT COUNT(*) AS calls, COALESCE(SUM(titles),0) AS titles, COALESCE(SUM(input_tokens),0) AS i, "
+                        "COALESCE(SUM(output_tokens),0) AS o FROM ai_usage WHERE at >= ?", (since,)).fetchone()
+    cost = r["i"] / 1e6 * float(s["ai_price_in"]) + r["o"] / 1e6 * float(s["ai_price_out"])
+    return dict(r, cost=cost)
+
+
+# ---------------------------------------------------------------- import
+
+IMPORT_KEYS = {"category", "label", "keywords", "max_buy"}
+
+
+def import_watches(data, replace=False, apply=False):
+    """Watches in export.json's shape. Returns a report; writes only when apply=True.
+    Categories match by name (created if missing); a watch matches by label within its category."""
+    report = {"add": [], "update": [], "skip": [], "errors": [], "new_categories": set()}
+    if isinstance(data, dict):
+        data = data.get("watches", data.get("models", []))
+    if not isinstance(data, list):
+        report["errors"].append("The file should be a list of watches, like export.json.")
+        return report
+    with db() as con:
+        cats = {r["name"].lower(): r["id"] for r in con.execute("SELECT id, name FROM categories")}
+        existing = {(r["category_id"], r["label"].lower()): r["id"] for r in con.execute("SELECT id, label, category_id FROM models")}
+        for n, w in enumerate(data, 1):
+            if not isinstance(w, dict) or not IMPORT_KEYS <= set(w):
+                report["errors"].append(f"#{n}: needs category, label, keywords and max_buy.")
+                continue
+            label, cat = str(w["label"]).strip(), str(w["category"]).strip()
+            kws = w["keywords"] if isinstance(w["keywords"], list) else str(w["keywords"]).splitlines()
+            terms = term_list("\n".join(str(k) for k in kws))
+            try:
+                mx = round(float(w["max_buy"]), 2)
+            except (TypeError, ValueError):
+                mx = 0
+            if not label or not cat or not terms or mx <= 0:
+                report["errors"].append(f"#{n} {label or '(no name)'}: name, category, a keyword and a max over $0 are required.")
+                continue
+            srch = w.get("search") or []
+            srch = term_list("\n".join(str(x) for x in (srch if isinstance(srch, list) else str(srch).splitlines())))
+            row = {"label": label, "terms": "\n".join(terms), "search": "\n".join(srch), "max_buy": mx,
+                   "match_mode": w.get("match_mode") if w.get("match_mode") in MATCH_MODES else "auto",
+                   "match": str(w.get("match") or ""), "exclude": str(w.get("exclude") or ""),
+                   "tier": w.get("tier") if w.get("tier") in TIERS else "try", "notes": str(w.get("notes") or ""),
+                   "enabled": int(w.get("enabled", True) is not False)}
+            cid = cats.get(cat.lower())
+            if cid is None:
+                report["new_categories"].add(cat)
+                if apply:
+                    cid = con.execute("INSERT INTO categories(name) VALUES (?)", (cat,)).lastrowid
+                    cats[cat.lower()] = cid
+            row["category_id"] = cid
+            mid = existing.get((cid, label.lower())) if cid is not None else None
+            if mid and not replace:
+                report["skip"].append(f"{cat} › {label}")
+                continue
+            if apply:
+                if mid:
+                    con.execute("UPDATE models SET terms=:terms, search=:search, max_buy=:max_buy, match_mode=:match_mode, match=:match, "
+                                "exclude=:exclude, tier=:tier, notes=:notes, enabled=:enabled WHERE id=:id", dict(row, id=mid))
+                else:
+                    new_id = con.execute("INSERT INTO models(label, terms, search, max_buy, match_mode, match, exclude, tier, notes, enabled, category_id) "
+                                         "VALUES (:label,:terms,:search,:max_buy,:match_mode,:match,:exclude,:tier,:notes,:enabled,:category_id)",
+                                         row).lastrowid
+                    existing[(cid, label.lower())] = new_id
+            (report["update"] if mid else report["add"]).append(f"{cat} › {label} ({len(terms)} keyword{'s' * (len(terms) != 1)}, max ${mx:.0f})")
+        if not apply:
+            con.rollback()
+    report["new_categories"] = sorted(report["new_categories"])
+    return report
+
+
+USERSCRIPT = r"""// ==UserScript==
+// @name         sgw-watch: track ShopGoodwill bids on roger
+// @namespace    sgw-watch
+// @version      1.0
+// @description  Tells roger about listings you bid on, and adds a "Track on roger" button to item pages.
+// @match        https://shopgoodwill.com/*
+// @match        https://www.shopgoodwill.com/*
+// @grant        GM_xmlhttpRequest
+// @grant        unsafeWindow
+// @connect      __HOST__
+// @run-at       document-start
+// ==/UserScript==
+(function () {
+  'use strict';
+  var ROGER = '__BASE__', TOKEN = '__TOKEN__';
+
+  function send(id, amount, source, done) {
+    GM_xmlhttpRequest({
+      method: 'POST', url: ROGER + '/api/track', headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({ k: TOKEN, id: String(id), amount: amount, source: source }),
+      timeout: 20000,
+      onload: function (r) { var j = {}; try { j = JSON.parse(r.responseText); } catch (e) {}
+        done(r.status === 200 && j.ok, j.message || ('HTTP ' + r.status)); },
+      onerror: function () { done(false, 'roger is not reachable (not on the home network?)'); },
+      ontimeout: function () { done(false, 'roger did not answer'); }
+    });
+  }
+
+  function toast(text, ok) {
+    var t = document.createElement('div');
+    t.textContent = text;
+    t.setAttribute('style', 'position:fixed;left:16px;bottom:16px;z-index:2147483647;padding:10px 14px;border-radius:10px;' +
+      'font:14px system-ui,sans-serif;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.3);background:' + (ok ? '#137333' : '#b3261e'));
+    (document.body || document.documentElement).appendChild(t);
+    setTimeout(function () { t.remove(); }, 5000);
+  }
+
+  function itemIdFromUrl() { var m = location.pathname.match(/item\/(\d+)/); return m && m[1]; }
+
+  // 1. Listen for bids. ShopGoodwill's site posts bids to its own API. We can't
+  // see that request's exact address from here, so any successful POST whose
+  // address mentions "bid" (and isn't a history/count read) counts as one.
+  var BID = /bid/i, NOT_BID = /history|count|increment|getbid|watch/i;
+  function fromBody(body) {
+    try {
+      var j = typeof body === 'string' ? JSON.parse(body) : null;
+      if (!j) return {};
+      return { id: j.itemId || j.ItemId || j.itemID || j.id,
+               amount: j.bidAmount || j.maxBidAmount || j.maxBid || j.amount || j.bidValue || null };
+    } catch (e) { return {}; }
+  }
+  function report(url, body) {
+    if (!BID.test(url) || NOT_BID.test(url)) return;
+    var x = fromBody(body), id = x.id || itemIdFromUrl();
+    if (!id) return;
+    send(id, x.amount || null, 'bid', function (ok, msg) { toast(ok ? 'roger: bid tracked' : 'roger: ' + msg, ok); });
+  }
+  var W = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+  try {
+    var origFetch = W.fetch;
+    W.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      var method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+      var body = init && init.body;
+      var p = origFetch.apply(this, arguments);
+      if (method === 'POST') p.then(function (r) { if (r.ok) report(url, body); }, function () {});
+      return p;
+    };
+    var X = W.XMLHttpRequest.prototype, open = X.open, sendX = X.send;
+    X.open = function (m, u) { this.__sgw = [String(m).toUpperCase(), String(u)]; return open.apply(this, arguments); };
+    X.send = function (b) {
+      var x = this, meta = x.__sgw;
+      if (meta && meta[0] === 'POST') x.addEventListener('load', function () { if (x.status >= 200 && x.status < 300) report(meta[1], b); });
+      return sendX.apply(this, arguments);
+    };
+  } catch (e) { /* the button below still works */ }
+
+  // 2. A button on every item page, for anything the listener misses.
+  var btn;
+  function sync() {
+    var id = itemIdFromUrl();
+    if (!document.body) return;
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.setAttribute('style', 'position:fixed;right:16px;bottom:16px;z-index:2147483647;padding:10px 14px;border-radius:99px;border:0;' +
+        'font:600 14px system-ui,sans-serif;background:#0b57d0;color:#fff;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3)');
+      btn.onclick = function () {
+        var id2 = itemIdFromUrl(); if (!id2) return;
+        btn.textContent = 'Tracking…';
+        send(id2, null, 'button', function (ok, msg) { btn.textContent = ok ? '✓ On roger' : 'Track on roger'; toast(ok ? 'roger: ' + msg : 'roger: ' + msg, ok); });
+      };
+      document.body.appendChild(btn);
+    }
+    if (btn.dataset.id !== id) { btn.dataset.id = id || ''; btn.textContent = 'Track on roger'; }
+    btn.style.display = id ? '' : 'none';
+  }
+  setInterval(sync, 1000);  // the site is a single-page app: follow its route changes
+})();
+"""
+
+
+def _base(handler):
+    host = handler.headers.get("Host") or "roger.local:8088"
+    return f"http://{host}", host.split(":")[0]
+
+
+def userscript(handler):
+    base, host = _base(handler)
+    return (USERSCRIPT.replace("__BASE__", base).replace("__HOST__", host)
+            .replace("__TOKEN__", settings()["track_token"]))
+
+
+def bookmarklet(handler):
+    base, _ = _base(handler)
+    js = ("(function(){var m=location.pathname.match(/item\\/(\\d+)/);"
+          "if(!m){alert('Open a ShopGoodwill item page first.');return;}"
+          f"window.open('{base}/track?k={settings()['track_token']}&id='+m[1],'_blank');}})();")
+    return "javascript:" + urllib.parse.quote(js, safe="(){};:=/'!+,.?&")
+
+
+def setup_block(handler):
+    return f"""<details class=setup><summary>Set up tracking from ShopGoodwill</summary>
+<ol>
+<li><b>Automatic (listens for your bids):</b> install <a href='https://www.tampermonkey.net/' target=_blank rel=noopener>Tampermonkey</a>,
+then open <a href='/sgw-watch.user.js'>sgw-watch.user.js</a> and click Install. Every bid you place on ShopGoodwill is
+sent here, and item pages get a <i>Track on roger</i> button. Works while you're on the home network.</li>
+<li><b>One click, no extension:</b> drag this to your bookmarks bar: <a class=btn href="{e(bookmarklet(handler))}">Track on roger</a><br>
+Click it on any ShopGoodwill item page.</li>
+<li><b>By hand:</b> paste an item link above, or tap <b>☆</b> on any row in Results.</li>
+</ol>
+<small>The bid listener recognises ShopGoodwill's bid request by pattern, because its exact address couldn't be checked when this was built.
+If a bid doesn't show up here, use the button; tell Claude and the pattern can be tightened.</small></details>"""
+
+
+def bids_page(handler, msg="", err=""):
+    s = settings()
+    with db() as con:
+        bids = [dict(r) for r in con.execute("SELECT * FROM bids ORDER BY end_utc")]
+        sel = {r["id"]: dict(r) for r in con.execute("SELECT * FROM sellers")}
+        sweeps = {r["seller_id"]: dict(r) for r in con.execute("SELECT * FROM sweeps")}
+        sugg = [dict(r) for r in con.execute("""
+          SELECT g.*, i.title, i.price, i.bids, i.end_utc, i.image, i.is_auction, m.label AS watch, m.max_buy
+          FROM suggestions g JOIN seller_items i ON i.item_id = g.item_id
+          LEFT JOIN models m ON m.id = g.model_id
+          WHERE g.hidden = 0 AND i.end_utc > ? AND g.item_id NOT IN (SELECT item_id FROM bids)
+          ORDER BY g.kind DESC, i.end_utc""", (now_iso(),))]
+        cats = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM categories")}
+    live = [b for b in bids if (b["end_utc"] or "") > now_iso()]
+    ended = [b for b in bids if (b["end_utc"] or "") <= now_iso()]
+    by_seller: dict = {}
+    for b in live:
+        by_seller.setdefault(b["seller_id"] or "", []).append(b)
+
+    def bid_rows(items):
+        out = []
+        for b in items:
+            mine = "" if b["my_max"] is None else f"{b['my_max']:.2f}"
+            seen = f"<div><small>bid seen: ${b['detected_amount']:.2f}</small></div>" if b["detected_amount"] else ""
+            out.append(f"""<tr><td><a href='https://shopgoodwill.com/item/{e(b['item_id'])}' target=_blank rel=noopener>{e(b['title'])}</a>
+<div><small>Ends {e(fmt_end(b['end_utc'], s))} · via {e(b['source'])}</small></div>{seen}</td>
+<td class=n data-l='Bid now'>${(b['price'] or 0):.2f}<br><small>{b['bids'] or 0} bids</small></td>
+<td class=n data-l='My max'><form method=post action='/bids/{e(b['item_id'])}/max' class=inline>
+<input name=my_max value='{mine}' placeholder='$' size=5 inputmode=decimal aria-label='My max bid'><button class=sm>Save</button></form></td>
+<td class=n><form method=post action='/bids/{e(b['item_id'])}/remove' class=inline><button class='sm del' title='Stop tracking'>Remove</button></form></td></tr>""")
+        return "".join(out)
+
+    red = words(s["red_flags"])
+
+    def sugg_rows(items):
+        out = []
+        for g in items:
+            fl = flags_for(g["title"], red)
+            flag_html = f"<div class=flag>{e(', '.join(fl))}</div>" if fl else ""
+            label = (f"<span class='chip good'>your watch: {e(g['watch'])}</span>" if g["kind"] == "watch"
+                     else f"<span class='chip ai'>Claude: {e(g['category'] or 'suggested')}</span>")
+            prefill = urllib.parse.urlencode({"prefill": "1", "label": g["title"][:60], "terms": " ".join(g["title"].split()[:4])})
+            watch_btn = "" if g["kind"] == "watch" else f"<a class='btn sm' href='/models?{e(prefill)}#add'>Make a watch</a>"
+            max_note = f"<br><small>your max ${g['max_buy']:.0f} total</small>" if g["kind"] == "watch" else ""
+            out.append(f"""<tr><td><a href='https://shopgoodwill.com/item/{e(g['item_id'])}' target=_blank rel=noopener>{e(g['title'])}</a> {label}
+{flag_html}<div><small>{e(g['reason'] or '')}</small></div><div><small>Ends {e(fmt_end(g['end_utc'], s))}</small></div></td>
+<td class=n data-l='Bid now'>${(g['price'] or 0):.2f}{max_note}</td>
+<td class=n style='white-space:nowrap'><form method=post action='/suggestions/{e(g['item_id'])}/track' class=inline><button class='sm pri'>☆ Track</button></form>
+{watch_btn}<form method=post action='/suggestions/{e(g['item_id'])}/hide' class=inline><button class=sm title='Not interested'>Hide</button></form></td></tr>""")
+        return "".join(out)
+
+    blocks = []
+    for sid, items in sorted(by_seller.items(), key=lambda kv: kv[1][0]["end_utc"] or ""):
+        info = sel.get(sid, {})
+        name = info.get("name") or items[0]["seller"] or (f"Seller {sid}" if sid else "Unknown seller")
+        where = ", ".join(x for x in (info.get("city"), info.get("state")) if x)
+        badges = []
+        if info.get("local"):
+            badges.append("<span class='chip loc'>local pickup</span>")
+        if info and not info.get("combine_ok", 1):
+            badges.append("<span class='chip warn'>no combined shipping</span>")
+        w = sweeps.get(sid)
+        if not sid:
+            sweep_txt = "<small class=mut>Seller unknown, so no suggestions.</small>"
+        elif not w:
+            sweep_txt = "<small class=mut>Not swept yet.</small>"
+        elif w["status"] == "running":
+            sweep_txt = "<small class=est>Sweeping…</small>"
+        else:
+            sweep_txt = (f"<small class=mut>Swept {e(fmt_ago(w['swept_at'], s))}: {w['items']} listings ending near yours, "
+                         f"{w['matched']} match your watches, {w['ai_picked']} from Claude.</small>")
+            if w["error"]:
+                sweep_txt += f"<div class=flag>{e(w['error'])}</div>"
+        sweep_btn = (f"<form method=post action='/sellers/{e(sid)}/sweep' class=inline><button class=sm>Sweep now</button></form>" if sid else "")
+        mine = [g for g in sugg if g["seller_id"] == sid]
+        sug_html = (f"<h3>Also from this seller <small>({len(mine)})</small></h3>"
+                    f"<div class=scroll><table class=res><tr><th>Listing</th><th class=n>Bid now</th><th></th></tr>{sugg_rows(mine)}</table></div>"
+                    if mine else "<p class=mut>No suggestions from this seller yet.</p>")
+        blocks.append(f"""<section class=sellerblock><h2>{e(name)}{(' · ' + e(where)) if where else ''} {' '.join(badges)}</h2>
+<div class=bar>{sweep_txt} {sweep_btn}</div>
+<div class=scroll><table class=res><tr><th>You're bidding on</th><th class=n>Bid now</th><th class=n>My max</th><th></th></tr>{bid_rows(items)}</table></div>
+{sug_html}</section>""")
+
+    spend = ai_spend()
+    cost_txt = "under $0.01" if spend["cost"] < 0.01 else f"about ${spend['cost']:.2f}"
+    ai_line = ("<span class=mut>Claude suggestions are off. Add an Anthropic API key in <a href='/settings#ai'>Settings</a> to turn them on.</span>"
+               if not s["anthropic_key"].strip() else
+               f"<span class=mut>Claude ({e(s['ai_model'])}) looked at {spend['titles']} titles in the last 30 days, "
+               f"{cost_txt}.</span>")
+    add = """<form method=post action=/bids/add class=bar><input name=item placeholder='Paste a ShopGoodwill item link or number' size=40 required
+aria-label='ShopGoodwill item link'><button class=pri>Track</button></form>"""
+    body = ((f"<div class=msg>{e(msg)}</div>" if msg else "") + (f"<div class='msg err'>{e(err)}</div>" if err else "")
+            + add + f"<p>{ai_line}</p>" + setup_block(handler)
+            + ("".join(blocks) or "<p class='empty mut'>You're not tracking any bids yet. Use one of the ways above.</p>"))
+    if ended:
+        body += (f"<details class=ended><summary>Ended in the last week ({len(ended)})</summary><div class=scroll><table class=res>"
+                 f"<tr><th>Listing</th><th class=n>Last bid</th><th class=n>My max</th><th></th></tr>{bid_rows(ended)}</table></div></details>")
+    refresh = 5 if any(w.get("status") == "running" for w in sweeps.values()) else None
+    return page("My bids", body, "bids", refresh=refresh)
+
+
+def track_page(handler, ok, message, row):
+    if not ok:
+        return page("Not tracked", f"<div class='msg err'>{e(message)}</div><p><a href='/bids'>My bids →</a></p>", "bids")
+    s = settings()
+    with db() as con:
+        sel = con.execute("SELECT * FROM sellers WHERE id=?", (row["seller_id"],)).fetchone() if row["seller_id"] else None
+    where = f" from {e(sel['name'])}, {e(sel['city'])} {e(sel['state'])}" if sel else ""
+    return page("Tracked", f"""<div class=msg>{e(message)}</div>
+<p>Ends {e(fmt_end(row['end_utc'], s))}{where}. roger is checking what else this seller has that ends around the same time.</p>
+<p><a class='btn pri' href='/bids'>See suggestions in My bids →</a> <a class=btn href='https://shopgoodwill.com/item/{e(row['item_id'])}'>Back to the listing</a></p>""", "bids")
+
+
+def import_page(text="", report=None, replace=False, done=False):
+    rep = ""
+    if report:
+        def lst(title, items, cls=""):
+            if not items:
+                return ""
+            return f"<h3 class='{cls}'>{title} ({len(items)})</h3><ul>" + "".join(f"<li>{e(i)}</li>" for i in items[:300]) + "</ul>"
+        head = "Imported." if done else "Preview: nothing has changed yet."
+        verb = ("added", "updated") if done else ("to add", "to update")
+        rep = (f"<div class=msg><b>{head}</b> {len(report['add'])} {verb[0]}, {len(report['update'])} {verb[1]}, "
+               f"{len(report['skip'])} already there, {len(report['errors'])} with problems"
+               + (f", new categories: {e(', '.join(report['new_categories']))}" if report["new_categories"] else "") + ".</div>"
+               + lst("Problems", report["errors"], "err") + lst("Will add" if not done else "Added", report["add"])
+               + lst("Will update" if not done else "Updated", report["update"]) + lst("Already there, skipped", report["skip"]))
+        if not done and (report["add"] or report["update"]) and not report["errors"]:
+            rep += f"""<form method=post action=/import><input type=hidden name=data value='{e(text)}'>
+<input type=hidden name=replace value='{'1' if replace else ''}'><input type=hidden name=action value=apply>
+<button class=pri>Import {len(report['add']) + len(report['update'])} watches</button> <a class=btn href='/import'>Cancel</a></form>"""
+    body = rep + f"""<form class=card method=post action=/import>
+<p class=mut>Load watches from a file in <a href='/export.json'>export.json</a>'s format. You'll see a preview before anything changes.
+Categories are matched by name and created if they're new; a watch is matched by its name within its category.</p>
+<label>File<input type=file accept='.json,application/json' id=file></label>
+<label>…or paste JSON<textarea name=data rows=10 id=data>{e(text)}</textarea></label>
+<label class=check><input type=checkbox name=replace value=1 {'checked' if replace else ''}> Update watches that already exist (otherwise they're skipped)</label>
+<input type=hidden name=action value=preview><div><button class=pri>Preview</button></div></form>
+<script>document.getElementById('file').addEventListener('change',function(){{var f=this.files[0];if(!f)return;
+var r=new FileReader();r.onload=function(){{document.getElementById('data').value=r.result;}};r.readAsText(f);}});</script>"""
+    return page("Import watches", body, "models")
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "sgw-watch"
 
@@ -1298,11 +1981,24 @@ class Handler(BaseHTTPRequestHandler):
             if p == "/":
                 return self.send(results_page(urllib.parse.parse_qs(u.query)))
             if p == "/models":
-                return self.send(models_page(q, q.pop("msg", "")))
+                form = {"label": q.get("label", ""), "terms": q.get("terms", ""), "max_buy": "", "tier": "try"} if q.pop("prefill", "") else None
+                return self.send(models_page({k: v for k, v in q.items() if k in ("cat", "q")}, q.pop("msg", ""), form=form))
             if p == "/categories":
                 return self.send(categories_page(q.get("msg", "")))
             if p == "/locations":
                 return self.send(locations_page(q, q.get("msg", "")))
+            if p == "/bids":
+                return self.send(bids_page(self, q.get("msg", ""), q.get("err", "")))
+            if p == "/sgw-watch.user.js":
+                return self.send(userscript(self), ctype="application/javascript; charset=utf-8")
+            if p == "/import":
+                return self.send(import_page())
+            if p == "/track":
+                if q.get("k") != settings()["track_token"]:
+                    return self.send(page("Not tracked", "<div class='msg err'>This bookmarklet's key is out of date. "
+                                          "Drag a fresh one from My bids.</div>", "bids"), 403)
+                ok, message, row = track(q.get("id", ""), "bookmarklet")
+                return self.send(track_page(self, ok, message, row), 200 if ok else 400)
             if p in ("/export.json", "/models.json"):
                 return self.send(export(), ctype="application/json")
             if p == "/scans":
@@ -1322,6 +2018,8 @@ class Handler(BaseHTTPRequestHandler):
             self.fault()
 
     def do_POST(self):
+        if self.path.rstrip("/") == "/api/track":
+            return self._api_track()
         # Only accept posts from this app's own pages, so another site open in
         # the same browser can't delete watches.
         origin = self.headers.get("Origin")
@@ -1336,6 +2034,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.redirect(self.headers.get("Referer") or "/")
             if p == "/settings":
                 with db() as con:
+                    if "anthropic_key" in f:
+                        typed = f["anthropic_key"].strip()
+                        if not typed:
+                            f.pop("anthropic_key")       # blank keeps the saved key
+                        elif typed.lower() == "clear":
+                            f["anthropic_key"] = ""
                     for k in DEFAULTS:
                         if k in f:
                             con.execute("INSERT INTO settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -1347,14 +2051,66 @@ class Handler(BaseHTTPRequestHandler):
                     if err:
                         con.rollback()
                         return self.send(models_page({}, form=f, err=err), 400)
-                    con.execute("INSERT INTO models(label, terms, match, match_mode, exclude, max_buy, tier, notes, category_id) "
-                                "VALUES (:label,:terms,:match,:match_mode,:exclude,:max_buy,:tier,:notes,:category_id)", data)
+                    con.execute("INSERT INTO models(label, terms, search, match, match_mode, exclude, max_buy, tier, notes, category_id) "
+                                "VALUES (:label,:terms,:search,:match,:match_mode,:exclude,:max_buy,:tier,:notes,:category_id)", data)
                 ret = f.get("return", "")
                 if ret.startswith("/?") or ret == "/":
                     return self.redirect(ret)
                 return self.redirect(back(f"/models?cat={data['category_id']}", f"Added {data['label']}. It's in the next scan."))
             if p == "/categories":
                 return self._category(None, f)
+            if p == "/import":
+                text = f.get("data", "")
+                try:
+                    data = json.loads(text)
+                except json.JSONDecodeError as ex:
+                    return self.send(import_page(text, {"add": [], "update": [], "skip": [], "new_categories": [],
+                                                        "errors": [f"That isn't valid JSON: {ex}"]}), 400)
+                apply = f.get("action") == "apply"
+                rpt = import_watches(data, replace=bool(f.get("replace")), apply=apply)
+                return self.send(import_page(text, rpt, bool(f.get("replace")), done=apply))
+            if p == "/bids/add":
+                ok, message, _ = track(f.get("item", ""), "pasted")
+                return self.redirect("/bids?" + urllib.parse.urlencode({"msg" if ok else "err": message}))
+            m = re.fullmatch(r"/bids/(\d+)/(max|remove|toggle)", p)
+            if m:
+                iid, act = m[1], m[2]
+                if act == "remove":
+                    untrack(iid)
+                    return self.redirect("/bids?msg=Stopped+tracking.")
+                if act == "toggle":
+                    with db() as con:
+                        on = con.execute("SELECT 1 FROM bids WHERE item_id=?", (iid,)).fetchone()
+                    if on:
+                        untrack(iid)
+                    else:
+                        track(iid, "results")
+                    return self.redirect(self.headers.get("Referer") or "/")
+                v = f.get("my_max", "").replace("$", "").strip()
+                try:
+                    val = round(float(v), 2) if v else None
+                except ValueError:
+                    return self.redirect("/bids?err=" + urllib.parse.quote("My max must be a number."))
+                with db() as con:
+                    con.execute("UPDATE bids SET my_max=? WHERE item_id=?", (val, iid))
+                return self.redirect("/bids?msg=Saved.")
+            m = re.fullmatch(r"/sellers/([^/]+)/sweep", p)
+            if m:
+                sid = urllib.parse.unquote(m[1])
+                with db() as con:
+                    con.execute("""INSERT INTO sweeps(seller_id, swept_at, status, items, matched, ai_picked, error)
+                                   VALUES (?,?, 'running', 0, 0, 0, '') ON CONFLICT(seller_id) DO UPDATE SET status='running'""",
+                                (sid, now_iso()))
+                threading.Thread(target=sweep_seller, args=(sid,), daemon=True).start()
+                return self.redirect("/bids")
+            m = re.fullmatch(r"/suggestions/(\d+)/(track|hide)", p)
+            if m:
+                if m[2] == "hide":
+                    with db() as con:
+                        con.execute("UPDATE suggestions SET hidden=1 WHERE item_id=?", (m[1],))
+                    return self.redirect("/bids")
+                ok, message, _ = track(m[1], "suggestion")
+                return self.redirect("/bids?" + urllib.parse.urlencode({"msg" if ok else "err": message}))
             if p == "/views":
                 name, query = f.get("name", "").strip()[:60], f.get("query", "")
                 if name:
@@ -1380,6 +2136,24 @@ class Handler(BaseHTTPRequestHandler):
             self.send("Not found", 404, "text/plain")
         except Exception:
             self.fault()
+
+    def _api_track(self):
+        """From the userscript on shopgoodwill.com. Token-gated instead of origin-gated:
+        the request comes from the browser extension, not from this app's pages."""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            j = json.loads(self.rfile.read(n).decode() or "{}")
+        except (ValueError, json.JSONDecodeError):
+            return self.send(json.dumps({"ok": False, "message": "bad request"}), 400, "application/json")
+        if j.get("k") != settings()["track_token"]:
+            return self.send(json.dumps({"ok": False, "message": "key out of date: reinstall the userscript from My bids"}),
+                             403, "application/json")
+        try:
+            ok, message, _ = track(j.get("id", ""), str(j.get("source") or "userscript")[:20], j.get("amount"))
+        except Exception:
+            traceback.print_exc()
+            ok, message = False, "roger hit an error (see journalctl -u sgw-watch)"
+        return self.send(json.dumps({"ok": ok, "message": message}), 200 if ok else 400, "application/json")
 
     def _category(self, cid, f, delete=False):
         with db() as con:
@@ -1436,7 +2210,7 @@ class Handler(BaseHTTPRequestHandler):
                 con.rollback()
                 return self.send(page("Edit", model_form(f, f"/models/{mid}", "Save", err), "models"), 400)
             data["id"] = mid
-            con.execute("UPDATE models SET label=:label, terms=:terms, match=:match, match_mode=:match_mode, exclude=:exclude, "
+            con.execute("UPDATE models SET label=:label, terms=:terms, search=:search, match=:match, match_mode=:match_mode, exclude=:exclude, "
                         "max_buy=:max_buy, tier=:tier, notes=:notes, category_id=:category_id WHERE id=:id", data)
             refile(con, mid)
             return self.redirect(back(f"/models?cat={data['category_id']}", f"Saved {data['label']}."))
@@ -1446,6 +2220,7 @@ def export():
     with db() as con:
         cats = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM categories")}
         return json.dumps([{"category": cats.get(r["category_id"]), "label": r["label"], "keywords": term_list(r["terms"]),
+                            "search": term_list(r["search"]),
                             "match_mode": r["match_mode"], "match": r["match"], "exclude": r["exclude"],
                             "max_buy": r["max_buy"], "tier": r["tier"], "notes": r["notes"],
                             "enabled": bool(r["enabled"])}
@@ -1460,6 +2235,10 @@ def main():
     sv.add_argument("--port", type=int, default=8088)
     sub.add_parser("scan")
     sub.add_parser("export")
+    im = sub.add_parser("import")
+    im.add_argument("file")
+    im.add_argument("--replace", action="store_true", help="update watches that already exist")
+    im.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     init()
     if a.cmd == "serve":
@@ -1471,6 +2250,16 @@ def main():
         sys.exit(1 if msg.startswith("Scan failed") else 0)
     elif a.cmd == "export":
         print(export())
+    elif a.cmd == "import":
+        with open(a.file) as fh:
+            rpt = import_watches(json.load(fh), replace=a.replace, apply=not a.dry_run)
+        for k in ("add", "update", "skip", "errors"):
+            for line in rpt[k]:
+                print(f"{k:7} {line}")
+        print(f"{'dry run: ' if a.dry_run else ''}{len(rpt['add'])} added, {len(rpt['update'])} updated, "
+              f"{len(rpt['skip'])} skipped, {len(rpt['errors'])} errors"
+              + (f"; new categories: {', '.join(rpt['new_categories'])}" if rpt["new_categories"] else ""))
+        sys.exit(1 if rpt["errors"] else 0)
 
 
 if __name__ == "__main__":
