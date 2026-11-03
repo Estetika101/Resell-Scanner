@@ -47,6 +47,17 @@ class Matching(unittest.TestCase):
         self.assertTrue(app.matches(watch(terms="zapper", match_mode="search"), "anything at all"))
         self.assertFalse(app.matches(watch(terms="Canon SX110", exclude="parts"), "Canon SX110 for parts"))
 
+    def test_auto_mode(self):
+        w = watch(terms="Canon SX110\niPod Classic", match_mode="auto")
+        self.assertTrue(app.matches(w, "Canon PowerShot SX110 IS"))
+        self.assertFalse(app.matches(w, "Canon PowerShot SX1100"))
+        self.assertTrue(app.matches(w, "Apple iPod Classic 80GB"))
+        self.assertFalse(app.matches(w, "Apple iPod Nano"))
+
+    def test_filter_parsing(self):
+        f = app.norm_filters({"cat": ["1", "2", "1"], "flagged": ["0", "1"], "model": "5", "q": [""]})
+        self.assertEqual(f, {"cat": ["1", "2"], "flagged": "1", "watch": ["5"]})
+
     def test_flags(self):
         red = app.words(app.DEFAULTS["red_flags"])
         self.assertIn("parts", app.flags_for("Canon SX110 For Parts", red))
@@ -106,7 +117,8 @@ class ScanAgainstMock(unittest.TestCase):
         cls.mock.wait()
 
     def ids(self, **f):
-        return {r["item_id"] for r in app.rows({k: str(v) for k, v in f.items()})}
+        return {r["item_id"] for r in app.rows({k: [str(x) for x in v] if isinstance(v, list) else str(v)
+                                                 for k, v in f.items()})}
 
     def test_scan(self):
         self.assertTrue(self.msg.startswith("Scan ok"), self.msg)
@@ -131,9 +143,43 @@ class ScanAgainstMock(unittest.TestCase):
         self.assertEqual(self.ids(q="sx110", flagged=0), {"101"})
         self.assertEqual(self.ids(max=26), {"101", "102"})
         self.assertEqual(self.ids(tier="try"), set())
+        self.assertEqual(self.ids(cat=[self.ipods, 1], q="ipod"), {"401", "404"})
+        ends = [r["end_utc"] for r in app.rows({"over": "1"})]
+        self.assertEqual(ends, sorted(ends))   # ending soonest is the default sort
         room = [r["item_id"] for r in app.rows({"sort": "room"})]
         heads = [r["headroom"] for r in app.rows({"sort": "room"})]
         self.assertEqual(heads, sorted(heads, reverse=True), room)
+
+    def test_locations(self):
+        with app.db() as con:
+            s = dict(con.execute("SELECT * FROM sellers WHERE id='999'").fetchone())
+            self.assertEqual((s["city"], s["state"], s["combine_ok"], s["local"]), ("Dallas", "TX", 0, 0))
+            self.assertEqual(con.execute("SELECT local FROM sellers WHERE id='43'").fetchone()[0], 1)  # seeded drivable
+        self.assertEqual(self.ids(local=1, over=1), {"101", "102", "401"})
+        self.assertEqual(self.ids(state="OR"), {"404"})
+        self.assertEqual(self.ids(seller="999", over=1), {"202", "301"})
+        rs = {r["item_id"]: r for r in app.rows({"over": "1"})}
+        self.assertEqual(rs["101"]["seller_live"], 3)   # 101, 102, 401 from seller 43
+
+    def test_good_buys(self):
+        # 101: clean, quoted, room $19; 401: room $10; 404: buy now room $6; 102 flagged.
+        self.assertEqual(self.ids(good=1, ending=9999), {"101", "401", "404"})
+        self.assertEqual(self.ids(good=1), {"101", "401"})            # default window: 24h
+        self.assertEqual(self.ids(good=1, minroom=15), {"101"})
+
+    def test_facets(self):
+        rs = app.live_rows()
+        f = app.norm_filters({"state": "OR"})
+        counts = app.facet_counts(rs, f, "state", lambda r: r["state"] or "?")
+        self.assertEqual(counts.get("TX"), 3)    # other states still counted while OR is selected
+
+    def test_pages_render(self):
+        for q in ({}, {"group": ["location"]}, {"seller": ["43"], "over": ["1"]}, {"good": ["1"]}, {"group": ["day"]},
+                  {"group": ["none"], "cat": ["999"]}):
+            html = app.results_page(q)
+            self.assertIn("<form id=ff", html)
+        self.assertIn("more from this seller", app.results_page({"over": ["1"]}))
+        self.assertIn("Goodwill Industries of Central Texas", app.locations_page({}))
 
 
 if __name__ == "__main__":

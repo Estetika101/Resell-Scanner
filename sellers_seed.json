@@ -1,0 +1,1217 @@
+{
+ "10": {
+  "allows_pickup": true,
+  "city": "Cedar Rapids",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of the Heartland",
+  "state": "IA",
+  "zip": "52402"
+ },
+ "100": {
+  "allows_pickup": true,
+  "city": "El Paso",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Shopgoodwill of El Paso",
+  "state": "TX",
+  "zip": "79925-1413"
+ },
+ "101": {
+  "allows_pickup": true,
+  "city": "Tyler",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of East Texas, Inc.",
+  "state": "TX",
+  "zip": "75706"
+ },
+ "102": {
+  "allows_pickup": true,
+  "city": "Johnston",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Central Iowa",
+  "state": "IA",
+  "zip": "50131-2781"
+ },
+ "103": {
+  "allows_pickup": true,
+  "city": "Marion",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Marion Goodwill Industries",
+  "state": "OH",
+  "zip": "43302-6421"
+ },
+ "106": {
+  "allows_pickup": true,
+  "city": "Brooklyn Park",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill-Easter Seals MN",
+  "state": "MN",
+  "zip": "55445-1249"
+ },
+ "107": {
+  "allows_pickup": true,
+  "city": "Columbus",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Columbus",
+  "state": "OH",
+  "zip": "43232"
+ },
+ "108": {
+  "allows_pickup": true,
+  "city": "Madison",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of South Central Wisconsin, Inc.",
+  "state": "WI",
+  "zip": "53718"
+ },
+ "11": {
+  "allows_pickup": true,
+  "city": "Baltimore",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Chesapeake, Inc.",
+  "state": "MD",
+  "zip": "21223"
+ },
+ "111": {
+  "allows_pickup": false,
+  "city": "Portland",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Northern New England",
+  "state": "ME",
+  "zip": "04101"
+ },
+ "114": {
+  "allows_pickup": true,
+  "city": "Flint",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Mid Michigan",
+  "state": "MI",
+  "zip": "48506-4009"
+ },
+ "115": {
+  "allows_pickup": true,
+  "city": "Honolulu",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Hawaii",
+  "state": "HI",
+  "zip": "96814-1601"
+ },
+ "117": {
+  "allows_pickup": true,
+  "city": "Nashville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Middle Tennessee, Inc.",
+  "state": "TN",
+  "zip": "37209-1021"
+ },
+ "118": {
+  "allows_pickup": true,
+  "city": "Omaha",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries Serving Eastern Nebraska & Southwest Iowa",
+  "state": "NE",
+  "zip": "68124-3132"
+ },
+ "119": {
+  "allows_pickup": true,
+  "city": "San Jose",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Silicon Valley",
+  "state": "CA",
+  "zip": "95110"
+ },
+ "12": {
+  "allows_pickup": false,
+  "city": "San Diego",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of San Diego County",
+  "state": "CA",
+  "zip": "92110"
+ },
+ "120": {
+  "allows_pickup": true,
+  "city": "Santa Rosa",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Redwood Empire",
+  "state": "CA",
+  "zip": "95407"
+ },
+ "122": {
+  "allows_pickup": false,
+  "city": "Tacoma",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of the Olympics and Rainier Region",
+  "state": "WA",
+  "zip": "98409"
+ },
+ "126": {
+  "allows_pickup": true,
+  "city": "McArthur ",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of South Central Ohio",
+  "state": "OH",
+  "zip": "45651"
+ },
+ "127": {
+  "allows_pickup": true,
+  "city": "Buffalo",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Western New York",
+  "state": "NY",
+  "zip": "14206-1804"
+ },
+ "129": {
+  "allows_pickup": true,
+  "city": "Gulfport",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill South Mississippi",
+  "state": "MS",
+  "zip": "39503-2656"
+ },
+ "130": {
+  "allows_pickup": true,
+  "city": "Cincinnati",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Ohio Valley Goodwill Industries",
+  "state": "OH",
+  "zip": "45215-1135"
+ },
+ "133": {
+  "allows_pickup": true,
+  "city": "Corpus Christi",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of South Texas",
+  "state": "TX",
+  "zip": "78415-5314"
+ },
+ "134": {
+  "allows_pickup": true,
+  "city": "Appleton",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of North Central Wisconsin",
+  "state": "WI",
+  "zip": "54914-4915"
+ },
+ "135": {
+  "allows_pickup": true,
+  "city": "Rockford (unless otherwise noted in listing)",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Northern Illinois",
+  "state": "IL",
+  "zip": "61103"
+ },
+ "136": {
+  "allows_pickup": true,
+  "city": "Bellmawr",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Southern NJ & Philadelphia",
+  "state": "NJ",
+  "zip": "08031"
+ },
+ "137": {
+  "allows_pickup": true,
+  "city": "Sioux City",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of the Great Plains - Sioux City, Iowa",
+  "state": "IA",
+  "zip": "51103-3202"
+ },
+ "138": {
+  "allows_pickup": true,
+  "city": "Abilene",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill - West Texas",
+  "state": "TX",
+  "zip": "79606-2343"
+ },
+ "140": {
+  "allows_pickup": true,
+  "city": "Jennings",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "MERS/Missouri Goodwill Industries",
+  "state": "MO",
+  "zip": "63136-1457"
+ },
+ "144": {
+  "allows_pickup": true,
+  "city": "Waco",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Heart of Texas Goodwill",
+  "state": "TX",
+  "zip": "76711-1749"
+ },
+ "145": {
+  "allows_pickup": true,
+  "city": "Fredericksburg",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Rappahannock Goodwill Industries Inc.",
+  "state": "VA",
+  "zip": "22407"
+ },
+ "146": {
+  "allows_pickup": true,
+  "city": "DuBois",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Corbet Rd NCPA Dubois",
+  "state": "PA",
+  "zip": "15801"
+ },
+ "147": {
+  "allows_pickup": true,
+  "city": "Las Vegas",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Southern Nevada",
+  "state": "NV",
+  "zip": "89139"
+ },
+ "148": {
+  "allows_pickup": true,
+  "city": "Tucson",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Southern Arizona",
+  "state": "AZ",
+  "zip": "85706-5006"
+ },
+ "15": {
+  "allows_pickup": true,
+  "city": "Medford",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Southern Oregon Goodwill Industries",
+  "state": "OR",
+  "zip": "97501-2332"
+ },
+ "155": {
+  "allows_pickup": false,
+  "city": " ",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Columbia, Inc. Pasco, WA",
+  "state": "WA",
+  "zip": " "
+ },
+ "159": {
+  "allows_pickup": true,
+  "city": "Boise",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Easterseals-Goodwill Northern Rocky Mountain-Boise",
+  "state": "ID",
+  "zip": "83714-7419"
+ },
+ "16": {
+  "allows_pickup": false,
+  "city": "Multiple Stores",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of South Florida",
+  "state": "FL",
+  "zip": "33056"
+ },
+ "164": {
+  "allows_pickup": true,
+  "city": "San Antonio",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of San Antonio",
+  "state": "TX",
+  "zip": "78218-2722"
+ },
+ "168": {
+  "allows_pickup": true,
+  "city": "Duluth",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "True North Goodwill",
+  "state": "MN",
+  "zip": "55802-2634"
+ },
+ "17": {
+  "allows_pickup": true,
+  "city": "Rochester",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of The Finger Lakes",
+  "state": "NY",
+  "zip": "14623-3109"
+ },
+ "171": {
+  "allows_pickup": true,
+  "city": "Oelwein",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Northeast Iowa, Inc.",
+  "state": "IA",
+  "zip": "50662"
+ },
+ "172": {
+  "allows_pickup": true,
+  "city": "Elyria",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Lorain County",
+  "state": "OH",
+  "zip": "44035-2214"
+ },
+ "174": {
+  "allows_pickup": true,
+  "city": "Hamden",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Southern New England, Inc.",
+  "state": "CT",
+  "zip": "06517"
+ },
+ "176": {
+  "allows_pickup": true,
+  "city": "Tallahassee",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries - Big Bend, Inc.",
+  "state": "FL",
+  "zip": "32304-3797"
+ },
+ "177": {
+  "allows_pickup": false,
+  "city": "North Charleston",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Palmetto Goodwill",
+  "state": "SC",
+  "zip": "29406-4825"
+ },
+ "179": {
+  "allows_pickup": true,
+  "city": "Throop",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Northeastern Pennsylvania",
+  "state": "PA",
+  "zip": "18512-1530"
+ },
+ "18": {
+  "allows_pickup": true,
+  "city": "Pittsburgh",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Southwestern Pennsylvania",
+  "state": "PA",
+  "zip": "15201-2709"
+ },
+ "181": {
+  "allows_pickup": true,
+  "city": "Statesville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Northwest North Carolina, Inc.",
+  "state": "NC",
+  "zip": "28625-3004"
+ },
+ "182": {
+  "allows_pickup": true,
+  "city": "Grand Island",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Greater Nebraska, Inc.",
+  "state": "NE",
+  "zip": "68801-6675"
+ },
+ "184": {
+  "allows_pickup": true,
+  "city": "Hagerstown",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Horizon Goodwill Industries",
+  "state": "MD",
+  "zip": "21742-1670"
+ },
+ "185": {
+  "allows_pickup": true,
+  "city": "Cypress",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Houston",
+  "state": "TX",
+  "zip": "77095"
+ },
+ "188": {
+  "allows_pickup": true,
+  "city": "Lawton",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Southwest Oklahoma & North Texas",
+  "state": "OK",
+  "zip": "73505-3401"
+ },
+ "19": {
+  "allows_pickup": true,
+  "city": "Spokane",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Inland Northwest",
+  "state": "WA",
+  "zip": "99202-1402"
+ },
+ "192": {
+  "allows_pickup": true,
+  "city": "Salt Lake City",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Easterseals-Goodwill Northern Rocky Mountain -SLC",
+  "state": "UT",
+  "zip": "84104"
+ },
+ "193": {
+  "allows_pickup": true,
+  "city": "Columbia",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Upstate/Midlands South Carolina - COLUMBIA",
+  "state": "SC",
+  "zip": "29209"
+ },
+ "196": {
+  "allows_pickup": true,
+  "city": "Detroit",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Greater Detroit",
+  "state": "MI",
+  "zip": "48208"
+ },
+ "199": {
+  "allows_pickup": false,
+  "city": "None",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Keystone Area - Harrisburg",
+  "state": "PA",
+  "zip": "None"
+ },
+ "2": {
+  "allows_pickup": true,
+  "city": "Santa Ana",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Orange County",
+  "state": "CA",
+  "zip": "92704"
+ },
+ "20": {
+  "allows_pickup": true,
+  "city": "Wichita",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Kansas INC.",
+  "state": "KS",
+  "zip": "67220-3403"
+ },
+ "200": {
+  "allows_pickup": true,
+  "city": "Richmond",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Richmond - Goodwill of Central & Coastal Virginia",
+  "state": "VA",
+  "zip": "23224-1027"
+ },
+ "201": {
+  "allows_pickup": true,
+  "city": "Phoenix",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Central & Northern Arizona",
+  "state": "AZ",
+  "zip": "85043-2712"
+ },
+ "22": {
+  "allows_pickup": true,
+  "city": "Greenville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Upstate/Midlands South Carolina - GREENVILLE",
+  "state": "SC",
+  "zip": "29607"
+ },
+ "25": {
+  "allows_pickup": false,
+  "city": "n/a",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Kentucky - Lexington",
+  "state": "KY",
+  "zip": "40505"
+ },
+ "26": {
+  "allows_pickup": true,
+  "city": "Oxnard",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Ventura and Santa Barbara Counties",
+  "state": "CA",
+  "zip": "93030-7934"
+ },
+ "27": {
+  "allows_pickup": true,
+  "city": "Akron",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Akron, Ohio, Inc.",
+  "state": "OH",
+  "zip": "44319-1223"
+ },
+ "28": {
+  "allows_pickup": true,
+  "city": "Oregon",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Northwest Ohio",
+  "state": "OH",
+  "zip": "43616"
+ },
+ "29": {
+  "allows_pickup": true,
+  "city": "Racine",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Greater Milwaukee and Chicago",
+  "state": "WI",
+  "zip": "53406-5021"
+ },
+ "3": {
+  "allows_pickup": true,
+  "city": "Albuquerque",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of New Mexico",
+  "state": "NM",
+  "zip": "87109-2442"
+ },
+ "31": {
+  "allows_pickup": true,
+  "city": "Barboursville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of KYOWVA Area, Inc.",
+  "state": "WV",
+  "zip": "25504-1030"
+ },
+ "32": {
+  "allows_pickup": true,
+  "city": "Newark",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Licking/Knox Goodwill Industries, Inc.",
+  "state": "OH",
+  "zip": "43055-5409"
+ },
+ "33": {
+  "allows_pickup": true,
+  "city": "South Hackensack",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Greater New York and Northern New Jersey",
+  "state": "NJ",
+  "zip": "07606-1542"
+ },
+ "337": {
+  "allows_pickup": true,
+  "city": "Knoxville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries-Knoxville, Inc.",
+  "state": "TN",
+  "zip": "37919"
+ },
+ "338": {
+  "allows_pickup": true,
+  "city": "Sherman",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of NE Texas",
+  "state": "TX",
+  "zip": "75090"
+ },
+ "339": {
+  "allows_pickup": true,
+  "city": "Norcross",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of North Georgia",
+  "state": "GA",
+  "zip": "30071-2915"
+ },
+ "34": {
+  "allows_pickup": true,
+  "city": "Lake Worth Beach",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Palm Beaches",
+  "state": "FL",
+  "zip": "33461-3882"
+ },
+ "343": {
+  "allows_pickup": true,
+  "city": "Bridgeport",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Western and Northern Connecticut",
+  "state": "CT",
+  "zip": "06605-2719"
+ },
+ "344": {
+  "allows_pickup": true,
+  "city": "Zanesville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Zanesville Welfare Organization and Goodwill Industries, Inc.",
+  "state": "OH",
+  "zip": "43701"
+ },
+ "345": {
+  "allows_pickup": true,
+  "city": "DuBois",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Tipp Street NCPA Dubois",
+  "state": "PA",
+  "zip": "15801"
+ },
+ "346": {
+  "allows_pickup": true,
+  "city": "Chattanooga",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Chattanooga Goodwill Industries Inc.",
+  "state": "TN",
+  "zip": "37416"
+ },
+ "348": {
+  "allows_pickup": true,
+  "city": "Hampton",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Hampton \u2013 Goodwill of Central & Coastal Virginia",
+  "state": "VA",
+  "zip": "23666"
+ },
+ "352": {
+  "allows_pickup": true,
+  "city": "Brookville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Brookville NCPA",
+  "state": "PA",
+  "zip": "15825"
+ },
+ "358": {
+  "allows_pickup": true,
+  "city": "Kingsport",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Tenneva",
+  "state": "TN",
+  "zip": "37664-3156"
+ },
+ "359": {
+  "allows_pickup": true,
+  "city": "Tulsa",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Tulsa, Inc.",
+  "state": "OK",
+  "zip": "74107"
+ },
+ "360": {
+  "allows_pickup": false,
+  "city": "n/a",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Kentucky - Louisville",
+  "state": "KY",
+  "zip": "40219"
+ },
+ "361": {
+  "allows_pickup": false,
+  "city": "Memphis",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Memphis Goodwill Incorporated",
+  "state": "TN",
+  "zip": "38133-4015"
+ },
+ "362": {
+  "allows_pickup": true,
+  "city": "Virginia Beach",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Virginia Beach - Goodwill of Central & Coastal Virginia",
+  "state": "VA",
+  "zip": "23462-6539"
+ },
+ "363": {
+  "allows_pickup": true,
+  "city": "Oklahoma City",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Central Oklahoma",
+  "state": "OK",
+  "zip": "73118-2614"
+ },
+ "365": {
+  "allows_pickup": true,
+  "city": "Rogers",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Arkansas - NWA",
+  "state": "AR",
+  "zip": "72758-1206"
+ },
+ "367": {
+  "allows_pickup": false,
+  "city": "n/a",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Kentucky ",
+  "state": "KY",
+  "zip": "42101"
+ },
+ "371": {
+  "allows_pickup": true,
+  "city": "Wellsboro",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Wellsboro NCPA",
+  "state": "PA",
+  "zip": "16901"
+ },
+ "376": {
+  "allows_pickup": false,
+  "city": "n/a",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Greater Washington D.C. -VA",
+  "state": "VA",
+  "zip": "22191"
+ },
+ "382": {
+  "allows_pickup": true,
+  "city": "Providence",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "GWSNE - Providence",
+  "state": "RI",
+  "zip": "02904-1013"
+ },
+ "385": {
+  "allows_pickup": true,
+  "city": "Conover",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "GW Northwest North Carolina - Conover",
+  "state": "NC",
+  "zip": "28613"
+ },
+ "386": {
+  "allows_pickup": true,
+  "city": "Newark",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Newark Ohio",
+  "state": "OH",
+  "zip": "43055"
+ },
+ "4": {
+  "allows_pickup": true,
+  "city": "Terre Haute",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Wabash Valley Goodwill",
+  "state": "IN",
+  "zip": "47802-3520"
+ },
+ "42": {
+  "allows_pickup": true,
+  "city": "Wilmington",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Delaware & Delaware County, Inc.",
+  "state": "DE",
+  "zip": "19802-2354"
+ },
+ "43": {
+  "allows_pickup": true,
+  "city": "Austin",
+  "combine_ok": true,
+  "drivable": true,
+  "name": "Goodwill Industries of Central Texas",
+  "state": "TX",
+  "zip": "78753"
+ },
+ "46": {
+  "allows_pickup": true,
+  "city": "Greensboro",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Central North Carolina, Inc.",
+  "state": "NC",
+  "zip": "27406-1309"
+ },
+ "47": {
+  "allows_pickup": true,
+  "city": "Jacksonville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of North Florida",
+  "state": "FL",
+  "zip": "32205-4975"
+ },
+ "48": {
+  "allows_pickup": false,
+  "city": "Seattle",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Evergreen Goodwill",
+  "state": "WA",
+  "zip": "98144"
+ },
+ "49": {
+  "allows_pickup": true,
+  "city": "Stockton",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of San Joaquin Valley, Inc.",
+  "state": "CA",
+  "zip": "95206"
+ },
+ "5": {
+  "allows_pickup": true,
+  "city": "Indianapolis",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Central & Southern Indiana",
+  "state": "IN",
+  "zip": "46226"
+ },
+ "50": {
+  "allows_pickup": true,
+  "city": "South Bend",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Michiana, Inc.",
+  "state": "IN",
+  "zip": "46628"
+ },
+ "53": {
+  "allows_pickup": true,
+  "city": "Mobile",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Gulf Coast",
+  "state": "AL",
+  "zip": "36695-4142"
+ },
+ "54": {
+  "allows_pickup": true,
+  "city": "Dayton",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Easter Seals Miami Valley",
+  "state": "OH",
+  "zip": "45402-2708"
+ },
+ "56": {
+  "allows_pickup": true,
+  "city": "Charleston",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Summit",
+  "state": "WV",
+  "zip": "25302-2210"
+ },
+ "57": {
+  "allows_pickup": true,
+  "city": "Long Beach",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Southern Los Angeles County",
+  "state": "CA",
+  "zip": "90806-5243"
+ },
+ "58": {
+  "allows_pickup": true,
+  "city": "Blue Springs",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Western Missouri & Eastern Kansas",
+  "state": "MO",
+  "zip": "64014"
+ },
+ "59": {
+  "allows_pickup": true,
+  "city": "Eugene",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Lane & South Coast Counties",
+  "state": "OR",
+  "zip": "97402-2731"
+ },
+ "60": {
+  "allows_pickup": false,
+  "city": "Reading",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Keystone Area - Reading",
+  "state": "PA",
+  "zip": "19606-2234"
+ },
+ "62": {
+  "allows_pickup": true,
+  "city": "South San Francisco",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of San Francisco",
+  "state": "CA",
+  "zip": "94080"
+ },
+ "63": {
+  "allows_pickup": true,
+  "city": "Fort Worth",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill North Central Texas",
+  "state": "TX",
+  "zip": "76119-5529"
+ },
+ "66": {
+  "allows_pickup": true,
+  "city": "Tampa",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill-Suncoast",
+  "state": "FL",
+  "zip": "33619"
+ },
+ "68": {
+  "allows_pickup": true,
+  "city": "Charlotte",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Central Michigan's Heartland",
+  "state": "MI",
+  "zip": "48813"
+ },
+ "69": {
+  "allows_pickup": true,
+  "city": "Frederick",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Monocacy Valley",
+  "state": "MD",
+  "zip": "21701-2722"
+ },
+ "7": {
+  "allows_pickup": false,
+  "city": "Bossier City",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of North Louisiana",
+  "state": "LA",
+  "zip": "71111"
+ },
+ "71": {
+  "allows_pickup": true,
+  "city": "Bakersfield",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill South Central California",
+  "state": "CA",
+  "zip": "93304"
+ },
+ "72": {
+  "allows_pickup": true,
+  "city": "Columbus",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Southern Rivers",
+  "state": "GA",
+  "zip": "31906-1765"
+ },
+ "73": {
+  "allows_pickup": false,
+  "city": "Colorado Springs",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Colorado",
+  "state": "CO",
+  "zip": "80907-3414"
+ },
+ "74": {
+  "allows_pickup": true,
+  "city": "Lufkin",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Central East Texas, Inc.",
+  "state": "TX",
+  "zip": "75904-2773"
+ },
+ "75": {
+  "allows_pickup": true,
+  "city": "Salinas",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Central Coast",
+  "state": "CA",
+  "zip": "93905-3342"
+ },
+ "77": {
+  "allows_pickup": true,
+  "city": "Kalamazoo",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Southwestern Michigan",
+  "state": "MI",
+  "zip": "49001-6104"
+ },
+ "78": {
+  "allows_pickup": true,
+  "city": "Los Angeles",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Southern California",
+  "state": "CA",
+  "zip": "90065"
+ },
+ "8": {
+  "allows_pickup": false,
+  "city": "Hillsboro",
+  "combine_ok": false,
+  "drivable": false,
+  "name": "Goodwill Industries of the Columbia Willamette",
+  "state": "OR",
+  "zip": "97123"
+ },
+ "80": {
+  "allows_pickup": true,
+  "city": "Gastonia",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of the Southern Piedmont",
+  "state": "NC",
+  "zip": "28054-6014"
+ },
+ "81": {
+  "allows_pickup": true,
+  "city": "Fort Myers",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of SW Florida, Inc.",
+  "state": "FL",
+  "zip": "33905-5203"
+ },
+ "84": {
+  "allows_pickup": false,
+  "city": "Youngstown",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Youngstown Area Goodwill Industries, Inc.",
+  "state": "OH",
+  "zip": "44505"
+ },
+ "86": {
+  "allows_pickup": true,
+  "city": "Muskegon",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of West Michigan, Inc.",
+  "state": "MI",
+  "zip": "49442"
+ },
+ "87": {
+  "allows_pickup": true,
+  "city": "Cleveland / Canton",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Greater Cleveland & East Central Ohio",
+  "state": "OH",
+  "zip": "44110"
+ },
+ "89": {
+  "allows_pickup": true,
+  "city": "Traverse City",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Northern Michigan",
+  "state": "MI",
+  "zip": "49696-8878"
+ },
+ "9": {
+  "allows_pickup": true,
+  "city": "Grandville",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Greater Grand Rapids",
+  "state": "MI",
+  "zip": "49418"
+ },
+ "90": {
+  "allows_pickup": true,
+  "city": "Peoria",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill Industries of Central Illinois, Inc.",
+  "state": "IL",
+  "zip": "61614"
+ },
+ "97": {
+  "allows_pickup": true,
+  "city": "Erie",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Ashtabula, Inc.",
+  "state": "PA",
+  "zip": "16509-4759"
+ },
+ "98": {
+  "allows_pickup": true,
+  "city": "Pooler",
+  "combine_ok": true,
+  "drivable": false,
+  "name": "Goodwill of Southeast Georgia",
+  "state": "GA",
+  "zip": "31322-8922"
+ }
+}

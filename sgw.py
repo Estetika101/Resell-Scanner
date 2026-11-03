@@ -118,6 +118,40 @@ def parse(raw: dict) -> dict:
         "end_utc": parse_end(raw.get("endTime")),
         "image": image_url(raw.get("imageURL")),
         "seller": raw.get("sellerName") or "",
+        "seller_id": str(raw.get("sellerId") or ""),
+    }
+
+
+def _get(path: str):
+    _wait()
+    req = urllib.request.Request(f"{API_ROOT}{path}", headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.load(r)
+
+
+def seller_info(item_id: str):
+    """Who and where a seller is, from any one of their listings, or None.
+
+    The item-detail payload carries sellerCompanyName, pickupCity/State/Zip and
+    sellerAllowPickup, so the seller map is observed, not transcribed from a
+    directory that goes stale. combine_ok only flips to False on the explicit
+    sentence sellers use ("Combined Shipping is Temporarily Unavailable").
+    """
+    try:
+        d = _get(f"/ItemDetail/GetItemDetailModelByItemId/{item_id}")
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return None
+    if not isinstance(d, dict) or not d.get("sellerId"):
+        return None
+    profile = re.sub(r"<[^>]+>", " ", (d.get("sellerItemProfile") or "") + " " + (d.get("shippingPolicy") or "")).lower()
+    return {
+        "id": str(d["sellerId"]),
+        "name": d.get("sellerCompanyName") or "",
+        "city": d.get("pickupCity") or "",
+        "state": (d.get("pickupState") or "").upper(),
+        "zip": d.get("pickupZip") or "",
+        "allows_pickup": bool(d.get("sellerAllowPickup")),
+        "combine_ok": "combined shipping is temporarily unavailable" not in _html.unescape(profile),
     }
 
 
