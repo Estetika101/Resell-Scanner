@@ -32,7 +32,10 @@ ITEMS = {
         {"itemId": 404, "sellerId": 8, "sellerName": "Seller 8", "title": "iPod Classic 80GB Silver", "currentPrice": 25.0, "numBids": 0, "listingType": 1, "buyNowPrice": 25.0, "endTime": end(100)},
     ],
 }
-SHIP = {101: (8.50, 3.49), 202: (9.0, 3.49), 401: (7.0, 3.0), 404: (6.0, 3.0)}  # 102, 301: no quote
+# ShopGoodwill's separate 1-cent-shipping pool: not returned by a normal search.
+PROMO = {"sx110": [{"itemId": 105, "sellerId": 43, "sellerName": "Seller 43", "title": "Canon PowerShot SX110 IS Silver",
+                    "currentPrice": 22.0, "numBids": 4, "listingType": 0, "endTime": end(9)}]}
+SHIP = {105: (0.01, 0.0), 101: (8.50, 3.49), 202: (9.0, 3.49), 401: (7.0, 3.0), 404: (6.0, 3.0)}  # 102, 301: no quote
 
 
 # Other things seller 43 has listed, only reachable through a seller sweep.
@@ -72,6 +75,8 @@ class H(BaseHTTPRequestHandler):
             if sid and not body["searchText"]:
                 every = [i for items in ITEMS.values() for i in items] + CATALOG_43
                 items = [i for i in every if str(i.get("sellerId")) == sid] if body["page"] == "1" else []
+            elif body.get("searchOneCentShippingOnly") == "true":
+                items = PROMO.get(body["searchText"].lower(), []) if body["page"] == "1" else []
             else:
                 items = ITEMS.get(body["searchText"].lower(), []) if body["page"] == "1" else []
             out = {"searchResults": {"items": items, "itemCount": len(items)}, "categoryListModel": []}

@@ -49,6 +49,12 @@ keeps your models and settings (the database is gitignored).
     "Clear all" removes the lot.
   - **Sort** (ending soonest is the default) and **Group** (clean/flagged,
     location, category, watch, ending day, none).
+  - **Shipping**: 1¢ shipping, $5 / $10 / $15 or less, or your own limit; and
+    a "Cheapest shipping" sort. Only real quotes count: a listing still on the
+    ~$12 estimate is never "cheap". 1¢ listings come from ShopGoodwill's
+    promotional pool, which the retired scanner found is separate from normal
+    search results, so each scan also reads one page of it per keyword (turn
+    off in Settings). They carry a **1¢ shipping** badge.
   - **⚡ Good buys ending soon**: clean, real shipping quote, at least $5 under
     your max, ending within 24 hours, soonest first. Both numbers are in
     Settings.

@@ -78,6 +78,7 @@ DEFAULTS = {
     "good_hours": "24",
     "sweep_pages": "10",
     "search_pages": "3",
+    "one_cent_pool": "1",
     "sweep_days": "3",
     "anthropic_key": "",
     "ai_model": "claude-haiku-5-5",
@@ -164,6 +165,8 @@ def init():
             con.execute("ALTER TABLE models ADD COLUMN exclude TEXT NOT NULL DEFAULT ''")
         if "search" not in _columns(con, "models"):
             con.execute("ALTER TABLE models ADD COLUMN search TEXT NOT NULL DEFAULT ''")
+        if "promo_ship" not in _columns(con, "listings"):
+            con.execute("ALTER TABLE listings ADD COLUMN promo_ship INTEGER NOT NULL DEFAULT 0")
         if "seller_id" not in _columns(con, "listings"):
             con.execute("ALTER TABLE listings ADD COLUMN seller_id TEXT")
         con.executescript("""
@@ -371,6 +374,14 @@ def _scan(trigger):
         _progress(scan_id, f"Searching {n}/{len(jobs)}: {term}")
         try:
             results = sgw.search(term, pages=int(float(s["search_pages"])))
+            promo_ids = set()
+            if s["one_cent_pool"] == "1":
+                # Small pool, one page: 1-cent shipping is worth roughly a whole max buy
+                # (the old scanner measured inbound shipping at $14.72 vs a $12.93 mean ceiling).
+                promo = sgw.search(term, pages=1, one_cent_shipping=True)
+                promo_ids = {li["item_id"] for li in promo}
+                have = {li["item_id"] for li in results}
+                results += [li for li in promo if li["item_id"] not in have]
         except sgw.ShapeError as e:
             errors.append(f"{term}: {e}")
             break  # the API changed; stop rather than hammer it with bad requests
@@ -392,16 +403,17 @@ def _scan(trigger):
                 matched += 1
                 con.execute("""
                   INSERT INTO listings(item_id, model_id, term, title, price, bids, is_auction,
-                                       end_utc, image, seller, seller_id, flags, first_seen, last_seen)
+                                       end_utc, image, seller, seller_id, flags, promo_ship, first_seen, last_seen)
                   VALUES (:item_id, :model_id, :term, :title, :price, :bids, :is_auction,
-                          :end_utc, :image, :seller, :seller_id, :flags, :now, :now)
+                          :end_utc, :image, :seller, :seller_id, :flags, :promo, :now, :now)
                   ON CONFLICT(item_id) DO UPDATE SET
                     model_id=excluded.model_id, term=excluded.term, title=excluded.title,
                     price=excluded.price, bids=excluded.bids, end_utc=excluded.end_utc,
                     image=excluded.image, seller=excluded.seller, seller_id=excluded.seller_id,
-                    flags=excluded.flags, last_seen=excluded.last_seen
+                    flags=excluded.flags, promo_ship=MAX(listings.promo_ship, excluded.promo_ship),
+                    last_seen=excluded.last_seen
                 """, dict(li, model_id=m["id"], term=term, flags=", ".join(flags_for(li["title"], red)),
-                          is_auction=int(li["is_auction"]), now=now_iso()))
+                          is_auction=int(li["is_auction"]), promo=int(li["item_id"] in promo_ids), now=now_iso()))
             hits = sum(1 for li in results if not any(w in li["title"].lower() for w in skip)
                        and any(matches(m, li["title"]) for m in ms))
             con.execute("""INSERT INTO keyword_stats(searched, watches, results, matched, at) VALUES (?,?,?,?,?)
@@ -477,7 +489,9 @@ def _progress(scan_id, text):
 # ---------------------------------------------------------------- results
 
 ENDING = {"1": "1 hour", "6": "6 hours", "24": "24 hours", "72": "3 days"}
-SORTS = {"end": "Ending soonest", "room": "Most room left", "landed": "Lowest total", "new": "Newest found"}
+SORTS = {"end": "Ending soonest", "room": "Most room left", "landed": "Lowest total", "ship": "Cheapest shipping",
+         "new": "Newest found"}
+SHIP = {"promo": "1¢ shipping", "5": "$5 or less", "10": "$10 or less", "15": "$15 or less"}
 GROUPS = {"status": "Clean / flagged", "location": "Location", "category": "Category",
           "watch": "Watch", "day": "Ending day", "none": "No grouping"}
 MULTI = ("cat", "watch", "tier", "state", "seller")
@@ -587,6 +601,15 @@ def _keep(r, k, v, s, now):
         return v != "0" or r["is_auction"]
     if k == "good":
         return v != "1" or _good(r, s)
+    if k == "ship":
+        # Cheap means a real quote under the limit. The Settings estimate never counts as cheap.
+        if v == "promo":
+            return bool(r["promo_ship"])
+        n = _num(v)
+        return n is None or (r["ship_known"] and r["ship_total"] <= n)
+    if k == "shipmax":
+        n = _num(v)
+        return n is None or (r["ship_known"] and r["ship_total"] <= n)
     return True
 
 
@@ -607,6 +630,8 @@ def sort_rows(rs, sort):
         rs.sort(key=lambda r: r["landed"])
     elif sort == "new":
         rs.sort(key=lambda r: r["first_seen"] or "", reverse=True)
+    elif sort == "ship":
+        rs.sort(key=lambda r: (not r["ship_known"], r["ship_total"], r["end_utc"]))
     else:
         rs.sort(key=lambda r: r["end_utc"])
     return rs
@@ -908,6 +933,16 @@ def results_page(q):
         f"<label class=opt><input type=radio name=ending value='{k}' {'checked' if k == end_now else ''}><span>{'Any time' if not k else 'Within ' + v}</span>"
         f"<small>{len(apply_filters(all_rows, dict(f, ending=k) if k else {x: y for x, y in f.items() if x != 'ending'}))}</small></label>"
         for k, v in [("", "")] + list(ENDING.items()))
+    ship_now = f.get("ship", "")
+    no_ship = {x: y for x, y in f.items() if x not in ("ship", "shipmax")}
+    ship_body = "".join(
+        f"<label class=opt><input type=radio name=ship value='{k}' {'checked' if k == ship_now else ''}><span>{v}</span>"
+        f"<small>{len(apply_filters(all_rows, dict(no_ship, ship=k) if k else no_ship))}</small></label>"
+        for k, v in [("", "Any shipping")] + list(SHIP.items())) + f"""
+<label>Or at most ($)<input name=shipmax type=number min=0 step=0.5 value='{e(f.get('shipmax', ''))}' inputmode=decimal></label>
+<button>Apply</button><small>Uses real quotes only: a listing still on the ~${float(s['ship_estimate']):.0f} estimate never counts as cheap.
+1¢ listings come from ShopGoodwill's promo pool, searched separately each scan.</small>"""
+    ship_active = " · ".join(x for x in [SHIP.get(ship_now, ""), f"≤ ${f['shipmax']}" if f.get("shipmax") else ""] if x)
     price_body = f"""<label>Total at most ($)<input name=max type=number min=0 step=1 value='{e(f.get('max', ''))}' inputmode=decimal></label>
 <label>Room left at least ($)<input name=minroom type=number min=0 step=1 value='{e(f.get('minroom', ''))}' inputmode=decimal></label>
 <button>Apply</button>"""
@@ -927,6 +962,7 @@ def results_page(q):
 {pill('loc', 'Location', loc_body, loc_active, wide=True)}
 {pill('ending', 'Ends', end_body, ('within ' + ENDING.get(end_now, end_now + 'h')) if end_now else '')}
 {pill('price', 'Price', price_body, price_active)}
+{pill('ship', 'Shipping', ship_body, ship_active)}
 {pill('tier', 'Tier', checks('tier', [(t, t) for t in TIERS], c_tier), names('tier', {}))}
 {pill('show', 'Show', show_body, show_active)}
 </div>
@@ -945,7 +981,9 @@ def results_page(q):
               "ending": lambda v: f"Ends within {ENDING.get(v, v + 'h')}", "max": lambda v: f"Total ≤ ${v}",
               "minroom": lambda v: f"Room ≥ ${v}", "over": lambda v: "Including over max" if v == "1" else "",
               "flagged": lambda v: "Hiding flagged" if v == "0" else "", "buynow": lambda v: "Hiding buy now" if v == "0" else "",
-              "good": lambda v: "Good buys only" if v == "1" else ""}
+              "good": lambda v: "Good buys only" if v == "1" else "",
+              "ship": lambda v: "1¢ shipping" if v == "promo" else f"Shipping {SHIP.get(v, v)}",
+              "shipmax": lambda v: f"Shipping ≤ ${v}"}
     for key, fn in simple.items():
         if key in f and fn(f[key]):
             chips.append((fn(f[key]), _without(f, key)))
@@ -985,6 +1023,7 @@ def results_page(q):
             fl = f"<div class=flag>{e(r['flags'])}</div>" if r["flags"] else ""
             img = f"<img class=th src='{e(r['image'])}' loading=lazy alt=''>" if r["image"] else ""
             badges = ("" if r["is_auction"] else " <span class=chip>buy now</span>") + \
+                     (" <span class='chip good'>1¢ shipping</span>" if r["promo_ship"] else "") + \
                      (" <span class='chip good'>good buy</span>" if _good(r, s) else "")
             where = ""
             if show_seller:
@@ -1103,7 +1142,7 @@ RESULTS_JS = """<script>
   // Interactive filtering: every change applies at once (LAN round trip is instant).
   var t;
   ff.addEventListener('change',function(ev){ if(ev.target.classList.contains('find')) return;
-    if(ev.target.name==='max'||ev.target.name==='minroom') return; go(); });
+    if(ev.target.name==='max'||ev.target.name==='minroom'||ev.target.name==='shipmax') return; go(); });
   ff.q.addEventListener('input',function(){ clearTimeout(t); t=setTimeout(go,600); });
   function go(){ var open=ff.querySelector('details[open]'); try{ sessionStorage.setItem('sgw-open', open?open.dataset.k:'');
     sessionStorage.setItem('sgw-y', String(window.scrollY)); sessionStorage.setItem('sgw-focus', document.activeElement===ff.q?'q':''); }catch(e){}
@@ -1302,7 +1341,9 @@ def settings_page(msg=""):
 <div class=row>{f('ai_model', 'Model')}{f('ai_max_titles', 'Max titles per seller sweep', 'number')}</div>
 <div class=row>{f('ai_price_in', '$ per million input tokens', 'number')}{f('ai_price_out', '$ per million output tokens', 'number')}</div>
 <label>What you buy (Claude reads this before picking)<textarea name=ai_profile rows=7>{e(s['ai_profile'])}</textarea></label>
-<div class=row>{f('search_pages', 'Pages of 40 to read per keyword', 'number')}<span></span></div>
+<div class=row>{f('search_pages', 'Pages of 40 to read per keyword', 'number')}
+<label>Also search 1¢-shipping listings<select name=one_cent_pool><option value=1 {'selected' if s['one_cent_pool'] == '1' else ''}>Yes (one extra page per keyword)</option>
+<option value=0 {'selected' if s['one_cent_pool'] != '1' else ''}>No</option></select></label></div>
 <div class=row>{f('sweep_pages', 'Seller sweep: pages of 40 to read', 'number')}{f('sweep_days', 'Seller sweep: days past your bid to include', 'number')}</div>
 <h2>Every watch</h2>
 <label>Red flags, every watch (comma separated; flagged, still shown)<textarea name=red_flags>{e(s['red_flags'])}</textarea></label>

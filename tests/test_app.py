@@ -153,15 +153,15 @@ class ScanAgainstMock(unittest.TestCase):
         self.assertNotIn("403", got)    # no "classic"
         with app.db() as con:
             ks = {r["searched"]: dict(r) for r in con.execute("SELECT * FROM keyword_stats")}
-        self.assertEqual((ks["sx110"]["results"], ks["sx110"]["matched"]), (3, 2))   # case-only one skipped
+        self.assertEqual((ks["sx110"]["results"], ks["sx110"]["matched"]), (4, 3))   # case-only skipped; 105 from the 1-cent pool
         self.assertEqual(ks["sx100"]["results"], 0)
 
     def test_filters(self):
         self.assertEqual(self.ids(cat=self.ipods), {"401", "404"})
         self.assertEqual(self.ids(cat=self.ipods, buynow=0), {"401"})
         self.assertEqual(self.ids(cat=self.ipods, ending=24), {"401"})
-        self.assertEqual(self.ids(q="sx110", flagged=0), {"101"})
-        self.assertEqual(self.ids(max=26), {"101", "102"})
+        self.assertEqual(self.ids(q="sx110", flagged=0), {"101", "105"})
+        self.assertEqual(self.ids(max=26), {"101", "102", "105"})
         self.assertEqual(self.ids(tier="try"), set())
         self.assertEqual(self.ids(cat=[self.ipods, 1], q="ipod"), {"401", "404"})
         ends = [r["end_utc"] for r in app.rows({"over": "1"})]
@@ -170,28 +170,40 @@ class ScanAgainstMock(unittest.TestCase):
         heads = [r["headroom"] for r in app.rows({"sort": "room"})]
         self.assertEqual(heads, sorted(heads, reverse=True), room)
 
+    def test_shipping(self):
+        # 105 only exists in the 1-cent pool; 101 ships $11.99; 102 has no quote (estimate never counts).
+        self.assertEqual(self.ids(ship="promo"), {"105"})
+        self.assertEqual(self.ids(ship="15", over=1, cat=[1]), {"101", "105", "202"})
+        self.assertEqual(self.ids(ship="5"), {"105"})
+        self.assertEqual(self.ids(shipmax="12", over=1, cat=[1]), {"101", "105"})
+        self.assertNotIn("102", self.ids(ship="15", over=1))
+        rs = app.rows({"sort": "ship", "over": "1"})
+        self.assertEqual(rs[0]["item_id"], "105")
+        self.assertFalse(rs[-1]["ship_known"])        # unquoted sort last
+        self.assertIn("1¢ shipping", app.results_page({"ship": ["promo"]}))
+
     def test_locations(self):
         with app.db() as con:
             s = dict(con.execute("SELECT * FROM sellers WHERE id='999'").fetchone())
             self.assertEqual((s["city"], s["state"], s["combine_ok"], s["local"]), ("Dallas", "TX", 0, 0))
             self.assertEqual(con.execute("SELECT local FROM sellers WHERE id='43'").fetchone()[0], 1)  # seeded drivable
-        self.assertEqual(self.ids(local=1, over=1), {"101", "102", "401"})
+        self.assertEqual(self.ids(local=1, over=1), {"101", "102", "105", "401"})
         self.assertEqual(self.ids(state="OR"), {"404"})
         self.assertEqual(self.ids(seller="999", over=1), {"202", "301"})
         rs = {r["item_id"]: r for r in app.rows({"over": "1"})}
-        self.assertEqual(rs["101"]["seller_live"], 3)   # 101, 102, 401 from seller 43
+        self.assertEqual(rs["101"]["seller_live"], 4)   # 101, 102, 105, 401 from seller 43
 
     def test_good_buys(self):
         # 101: clean, quoted, room $19; 401: room $10; 404: buy now room $6; 102 flagged.
-        self.assertEqual(self.ids(good=1, ending=9999), {"101", "401", "404"})
-        self.assertEqual(self.ids(good=1), {"101", "401"})            # default window: 24h
-        self.assertEqual(self.ids(good=1, minroom=15), {"101"})
+        self.assertEqual(self.ids(good=1, ending=9999), {"101", "105", "401", "404"})
+        self.assertEqual(self.ids(good=1), {"101", "105", "401"})            # default window: 24h
+        self.assertEqual(self.ids(good=1, minroom=15), {"101", "105"})
 
     def test_facets(self):
         rs = app.live_rows()
         f = app.norm_filters({"state": "OR"})
         counts = app.facet_counts(rs, f, "state", lambda r: r["state"] or "?")
-        self.assertEqual(counts.get("TX"), 3)    # other states still counted while OR is selected
+        self.assertEqual(counts.get("TX"), 4)    # other states still counted while OR is selected
 
     def test_pages_render(self):
         for q in ({}, {"group": ["location"]}, {"seller": ["43"], "over": ["1"]}, {"good": ["1"]}, {"group": ["day"]},

@@ -85,11 +85,18 @@ def _post(path: str, body: dict):
         return json.load(r)
 
 
-def search(term: str, pages: int = 2) -> list[dict]:
-    """Live listings for one term, ending soonest first, as plain dicts."""
+def search(term: str, pages: int = 2, one_cent_shipping: bool = False) -> list[dict]:
+    """Live listings for one term, ending soonest first, as plain dicts.
+
+    one_cent_shipping asks for ShopGoodwill's promotional 1-cent-shipping
+    listings. The retired scanner found this is a different POOL on the
+    server, not a filter over the default results, so it's searched separately.
+    """
     out = []
     for page in range(1, pages + 1):
         body = dict(SEARCH_TEMPLATE, searchText=term, page=str(page))
+        if one_cent_shipping:
+            body["searchOneCentShippingOnly"] = "true"
         data = _post("/Search/ItemListing", body)
         if not isinstance(data, dict) or "searchResults" not in data:
             keys = list(data)[:10] if isinstance(data, dict) else type(data).__name__
